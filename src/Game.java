@@ -35,6 +35,7 @@ public class Game extends GameCore {
     static int screenHeight = 1080;
 
     static int maxScreenWidth = (screenWidth * 5);
+    int xo = 0;
 
     public float gravity = 0.001f;
 
@@ -48,12 +49,14 @@ public class Game extends GameCore {
 
 
     // Game resources
-    Animation playerIdle, playerRun, playerDeath, enemyKnightRun, enemyKnightIdle, bg1, bg2, bg3, bg4;
+    Animation playerIdle, playerRun, playerDeath, enemyKnightRun, enemyKnightIdle, playerArrow, bg1, bg2, bg3, bg4;
     private Image bgImage;
 
     Sprite player = null;
+    Sprite arrow,arrowCollision;
 
     private int playerHealth = 3;
+    private int arrowHP = 1; // used as an easy way to destroy a players arrow when they hit an enemy
 
 
     ArrayList<Sprite> background = new ArrayList<>();
@@ -113,6 +116,9 @@ public class Game extends GameCore {
         playerRun = new Animation();
         playerRun.loadAnimationFromSheet("images/Run.png", 7, 1, 150);
 
+        playerArrow = new Animation();
+        playerArrow.loadAnimationFromSheet("images/arrow.png", 3, 1, 250);
+
         playerDeath = new Animation();
         playerDeath.loadAnimationFromSheet("images/Dead.png", 6, 1, 450);
 
@@ -125,6 +131,9 @@ public class Game extends GameCore {
 
         // Initialise the player with an animation
         player = new Sprite(playerIdle);
+
+        arrow = new Sprite(playerArrow);
+        arrowCollision = new Sprite(playerArrow);
 
         enemies.add(new Sprite(enemyKnightRun));
         enemies.add(new Sprite(enemyKnightRun));
@@ -166,7 +175,6 @@ public class Game extends GameCore {
     }
 
 
-
     /**
      * You will probably want to put code to restart a game in
      * a separate method so that you can call it when restarting
@@ -177,6 +185,7 @@ public class Game extends GameCore {
         player.setPosition(200, 960);
         player.setVelocity(0, 0);
         player.show();
+
         for (int i = 0; i < enemies.size(); i++) {
             Sprite s = enemies.get(i);
             if (i == 0) {
@@ -206,7 +215,7 @@ public class Game extends GameCore {
         // First work out how much we need to shift the view in order to
         // see where the player is. To do this, we adjust the offset so that
         // it is relative to the player's position along with a shift
-        int xo = 0;
+        // int xo = 0;
 
         if (player.getX() < screenWidth / 2) {
             //xo = -(int) player.getX() + ((screenWidth - Math.round(player.getX())));
@@ -218,8 +227,9 @@ public class Game extends GameCore {
         } else {
             xo = -(int) player.getX() + screenWidth / 2;
         }
+
         //int xo = -(int)player.getX() + screenWidth/2;
-        int yo = -100;
+        int yo = 0;
 
         g.setColor(Color.white);
         g.fillRect(0, 0, getWidth(), getHeight());
@@ -256,6 +266,9 @@ public class Game extends GameCore {
         player.setOffsets(xo, yo);
         //  player.draw(g);
 
+        arrow.draw(g);
+       // arrowCollision.draw(g);
+
         player.drawTransformed(g);
         for (Sprite s : enemies) {
             s.setOffsets(xo, yo);
@@ -279,6 +292,8 @@ public class Game extends GameCore {
 
             g.setColor(Color.red);
             player.drawBoundingBox(g);
+            arrow.drawBoundingBox(g);
+            arrowCollision.drawBoundingBox(g);
             for (Sprite s : enemies) {
                 s.drawBoundingBox(g);
             }
@@ -361,24 +376,31 @@ public class Game extends GameCore {
         //player.update(elapsed);
         int i = 0;
         for (Sprite s : enemies) {
-            s.update(elapsed);
+            //s.update(elapsed);
             if (boundingBoxCollision(player, s)) {
                 if (s.getVelocityX() < 0) {
                     s.setVelocityX(s.getVelocityX() * -1);
                     player.setX(player.getX() - 63);
+                    System.out.println("Player"+ player.getX());
+                    System.out.println("enemy"+ s.getX());
                     playerHealth--;
-                    s.damage(1);
-                    System.out.println("Enemy Health: " + enemyHealth[i]);
                 } else {
                     s.setVelocityX(s.getVelocityX() * -1);
                     player.setX(player.getX() + 63);
                     playerHealth--;
-                    s.damage(1);
-                    System.out.println("Enemy Health: " + enemyHealth[i]);
                 }
-                if(enemyHealth[i]<=0){
-                    s.kill();
-                }
+
+            }
+            if (boundingBoxCollision(arrowCollision, s)) {
+                s.damage(1);
+                arrow.hideSprite();
+                arrowCollision.hideSprite();
+                System.out.println("Arrow"+arrow.getX());
+                System.out.println("enemy"+s.getX());
+            }
+
+            if (enemyHealth[i] <= 0) {
+                s.kill();
             }
             i++;
 
@@ -391,13 +413,19 @@ public class Game extends GameCore {
                 it.remove(); // This removes the sprite if it has been marked as inactive ( killed )
             }
         }
-        if (playerHealth<1)
+        if (playerHealth < 1) {
             playerDeathCycle();
+        }
+
         player.update(elapsed);
+        arrow.update(elapsed);
+        arrowCollision.update(elapsed);
         // Then check for any collisions that may have occurred
         handleScreenEdge(player, tmap, elapsed);
         enemyTileCollision(enemies, tmap);
+        arrowTileCollisionCheck(arrowCollision,tmap);
         checkTileCollision(player, tmap, tmapBackground);
+
 
     }
 
@@ -415,10 +443,10 @@ public class Game extends GameCore {
             @Override
             public void run() {
                 // Reset the game after the pause
-               playerHealth = 3;
-               for(int i =enemies.size(); i <4;i++){
-                   enemies.add(new Sprite(enemyKnightRun));
-               } // adds a new enemy in until there are 4 enemies again
+                playerHealth = 3;
+                for (int i = enemies.size(); i < 4; i++) {
+                    enemies.add(new Sprite(enemyKnightRun));
+                } // adds a new enemy in until there are 4 enemies again
 
                 initialiseGame();
             }
@@ -481,13 +509,13 @@ public class Game extends GameCore {
 
         if (keyCode == KeyEvent.VK_ESCAPE) System.exit(0);
 
-        if (keyCode == KeyEvent.VK_RIGHT) {
+        if (keyCode == KeyEvent.VK_RIGHT || keyCode == KeyEvent.VK_D) {
             rightKeyPressed = true;
         }
-        if (keyCode == KeyEvent.VK_LEFT) {
+        if (keyCode == KeyEvent.VK_LEFT || keyCode == KeyEvent.VK_A) {
             leftKeyPressed = true;
         }
-        if (keyCode == KeyEvent.VK_SPACE) {
+        if (keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_W) {
             jump = true;
         }
         if (keyCode == KeyEvent.VK_EQUALS) {
@@ -496,13 +524,11 @@ public class Game extends GameCore {
         if (keyCode == KeyEvent.VK_R) { //resets the game in case user gets stuck
             initialiseGame();
         }
-        if (keyCode == KeyEvent.VK_D) {
+        if (keyCode == KeyEvent.VK_SPACE) {
+            playerAttack();
 
         }
-        if (keyCode == KeyEvent.VK_A) {//[TODO] add a way to attack
-            //player.setAnimation(playerAttack);
 
-        }
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -556,6 +582,43 @@ public class Game extends GameCore {
         checkMiddleRightCollsion(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
 
 
+    }
+    public void arrowTileCollisionCheck(Sprite s, TileMap tmap){
+        collidedTiles.clear();
+
+        float spriteX = s.getX();
+        float spriteY = s.getY();
+
+        float tileWidth = tmap.getTileWidth();
+        float tileHeight = tmap.getTileHeight();
+
+        ArrowLeftCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
+        ArrowRightCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
+    }
+
+    private void ArrowRightCollision(Sprite sprite, TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
+        int xtile = (int) ((spriteX + sprite.getWidth()) / tileWidth);
+        int ytile = (int) (spriteY / tileHeight);
+
+        Tile aR = tileMap.getTile(xtile, ytile);
+
+        if (aR != null && aR.getCharacter() != '.') {
+            arrow.hideSprite();
+            arrowCollision.hideSprite();
+        }
+        collidedTiles.add(aR);
+    }
+    private void ArrowLeftCollision(Sprite sprite, TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
+        int xtile = (int) (spriteX / tileWidth);
+        int ytile = (int) (spriteY / tileHeight);
+
+        Tile aL = tileMap.getTile(xtile, ytile);
+
+        if (aL != null && aL.getCharacter() != '.') {
+            arrow.hideSprite();
+            arrowCollision.hideSprite();
+        }
+        collidedTiles.add(aL);
     }
 
     public void enemyTileCollision(ArrayList<Sprite> s, TileMap tmap) {
@@ -720,16 +783,35 @@ public class Game extends GameCore {
 		}*/
         int keyCode = e.getKeyCode();
 
-        if (keyCode == KeyEvent.VK_RIGHT) {
+        if (keyCode == KeyEvent.VK_RIGHT || keyCode == KeyEvent.VK_D) {
             rightKeyPressed = false;
         }
-        if (keyCode == KeyEvent.VK_LEFT) {
+        if (keyCode == KeyEvent.VK_LEFT || keyCode == KeyEvent.VK_A) {
             leftKeyPressed = false;
         }
-        if (keyCode == KeyEvent.VK_SPACE) {
+        if (keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_W) {
             jump = false;
         }
 
         e.consume();
+    }
+
+    private void playerAttack() {
+        int arrowX ;
+        int arrowY = (int) player.getY();
+        if (lastKeyLeft) {
+            arrow.setVelocityX(-0.7f);
+            arrowCollision.setVelocityX(-0.7f);
+        } else {
+            arrow.setVelocityX(+0.7f);
+            arrowCollision.setVelocityX(+0.7f);
+        }
+        if (player.getX() > (screenWidth / 2)) {
+            arrowX = 960;
+        } else {
+            arrowX = (int) player.getX();
+        }
+        arrowCollision.setPosition(player.getX(),player.getY());
+        arrow.setPosition(arrowX, arrowY);
     }
 }

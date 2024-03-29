@@ -437,11 +437,19 @@ public class Sprite {
     }
 
 
+    public int getHealth(){
+        return health;
+    }
     public void damage(int amount) {
         health -= amount;
         if (health <= 0) {
             kill();
         }
+    }
+
+    public void hideSprite(){
+        setVelocityX(0);
+        setPosition(-100,-100);
     }
 }
     
