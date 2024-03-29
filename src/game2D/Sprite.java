@@ -3,6 +3,7 @@ package game2D;
 import java.awt.Image;
 import java.awt.*;
 import java.awt.geom.*;
+import java.util.Iterator;
 
 /**
  * This class provides the functionality for a moving animated image or Sprite.
@@ -27,6 +28,7 @@ public class Sprite {
     private float height;
     private float width;
     private float radius;
+    private int health;
 
     // The scale to draw the sprite at where 1 equals normal size
     private double xscale;
@@ -40,10 +42,13 @@ public class Sprite {
 
     private boolean onGround;
 
+    private boolean isActive;
+
     // The draw offset associated with this sprite. Used to draw it
     // relative to specific on screen position (usually the player)
     private int xoff = 0;
     private int yoff = 0;
+
 
     /**
      * Creates a new Sprite object with the specified Animation.
@@ -56,6 +61,7 @@ public class Sprite {
         xscale = 1.0f;
         yscale = 1.0f;
         rotation = 0.0f;
+        isActive = true;
     }
 
 
@@ -423,6 +429,20 @@ public class Sprite {
         yoff = y;
     }
 
+    public boolean isActive() {
+        return this.isActive;
+    }
+    public void kill() {
+        isActive = false; // Mark the sprite as inactive
+    }
+
+
+    public void damage(int amount) {
+        health -= amount;
+        if (health <= 0) {
+            kill();
+        }
+    }
 }
     
 

@@ -6,6 +6,7 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -130,6 +131,7 @@ public class Game extends GameCore {
         enemies.add(new Sprite(enemyKnightRun));
         enemies.add(new Sprite(enemyKnightRun));
 
+
         bg1 = new Animation();
         bg1.loadAnimationFromSheet("images/background/grassRoad.png", 1, 1, 100);
         bg2 = new Animation();
@@ -147,21 +149,23 @@ public class Game extends GameCore {
 
         Sound sound = new Sound("sounds/bgmusic.wav");
         new Thread(() -> {
+            sound.start(); // Start playing the sound
+
+            // Loop to keep the sound playing
             while (true) {
-                sound.run();
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-
         }).start();
 
         initialiseGame();
-
         System.out.println(tmap);
     }
+
+
 
     /**
      * You will probably want to put code to restart a game in
@@ -186,7 +190,7 @@ public class Game extends GameCore {
             }
             s.setVelocity(0, 0);
             s.show();
-            s.setVelocityX(0.1f);
+            s.setVelocityX(0.05f);
         }
 
     }
@@ -363,23 +367,32 @@ public class Game extends GameCore {
                     s.setVelocityX(s.getVelocityX() * -1);
                     player.setX(player.getX() - 63);
                     playerHealth--;
-                    enemyHealth[i]--;
+                    s.damage(1);
                     System.out.println("Enemy Health: " + enemyHealth[i]);
                 } else {
                     s.setVelocityX(s.getVelocityX() * -1);
                     player.setX(player.getX() + 63);
                     playerHealth--;
-                    enemyHealth[i]--;
+                    s.damage(1);
                     System.out.println("Enemy Health: " + enemyHealth[i]);
+                }
+                if(enemyHealth[i]<=0){
+                    s.kill();
                 }
             }
             i++;
+
             s.update(elapsed);
         }
-        if (playerHealth <= 0) {
-            playerDeathCycle();
-            //playerHealth = 3;
+        Iterator<Sprite> it = enemies.iterator();
+        while (it.hasNext()) {
+            Sprite s = it.next();
+            if (!s.isActive()) {
+                it.remove(); // This removes the sprite if it has been marked as inactive ( killed )
+            }
         }
+        if (playerHealth<1)
+            playerDeathCycle();
         player.update(elapsed);
         // Then check for any collisions that may have occurred
         handleScreenEdge(player, tmap, elapsed);
@@ -392,25 +405,24 @@ public class Game extends GameCore {
         // Play the death animation for the player sprite
         player.setAnimation(playerDeath);
 
-        // Stop all enemies moving
+        // Stop all enemies moving and hide them
         for (Sprite s : enemies) {
             s.setVelocityX(0.0f);
-            s.setAnimation(enemyKnightIdle);
+            s.hide();
         }
-
-        // Pause for 2600 milliseconds so full death animation plays
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 // Reset the game after the pause
-                playerHealth = 3;
-                for (int i = 0; i < enemyHealth.length; i++) {
-                    enemyHealth[i] = 1;
-                }
+               playerHealth = 3;
+               for(int i =enemies.size(); i <4;i++){
+                   enemies.add(new Sprite(enemyKnightRun));
+               } // adds a new enemy in until there are 4 enemies again
+
                 initialiseGame();
             }
-        }, 2600); // Total duration of the death animation + 500ms pause
+        }, 2600); // Total duration of the death animation
     }
 
 
@@ -497,13 +509,6 @@ public class Game extends GameCore {
                 if (player.getX() < (screenWidth / 2)) {
                     player.setX(e.getX());
                     player.setY(e.getY());
-                } else if (e.getX() > (screenWidth / 2)) {
-                    player.setX(player.getX() + (e.getX() / 2));
-                    player.setY(e.getY());
-                }else {
-                   // player.setX(player.getX() - (e.getX() + (screenWidth / 2)));
-                    player.setY(e.getY());
-                    System.out.println(e.getX());
                 }
             }
 
