@@ -4,7 +4,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Timer;
@@ -13,13 +12,11 @@ import java.util.TimerTask;
 
 import game2D.*;
 
-import javax.swing.*;
-
 // Game demonstrates how we can override the GameCore class
 // to create our own 'game'. We usually need to implement at
 // least 'draw' and 'update' (not including any local event handling)
 // to begin the process. You should also add code to the 'init'
-// method that will initialise event handlers etc. 
+// method that will initialise event handlers etc.
 
 // Student ID: ???????
 
@@ -31,6 +28,7 @@ public class Game extends GameCore {
 
 
     // Useful game constants
+    float newVolume;
     static int screenWidth = 1920;
     static int screenHeight = 1080;
 
@@ -56,19 +54,19 @@ public class Game extends GameCore {
     Sprite arrow,arrowCollision;
 
     private int playerHealth = 3;
-    private int arrowHP = 1; // used as an easy way to destroy a players arrow when they hit an enemy
 
 
     ArrayList<Sprite> background = new ArrayList<>();
     ArrayList<Sprite> enemies = new ArrayList<>();
-    int[] enemyHealth = {1, 1, 1, 1};
 
     ArrayList<Tile> collidedTiles = new ArrayList<Tile>();
 
     TileMap tmap = new TileMap();    // Our tile map, note that we load it in init()
     TileMap tmapBackground = new TileMap();
 
-    long total;                    // The score will be the total time elapsed since a crash
+    long total;
+
+    public Sound backgroundMusic;
 
     //ImageIcon overlayImage = new ImageIcon("images/GameOver.png");
 
@@ -87,6 +85,7 @@ public class Game extends GameCore {
         gct.run(false, screenWidth, screenHeight);
     }
 
+
     /**
      * Initialise the class, e.g. set up variables, load images,
      * create animations, register event handlers.
@@ -97,69 +96,74 @@ public class Game extends GameCore {
      * but you could reset the positions of sprites each time you restart the game).
      */
     public void init() {
-        Sprite s;    // Temporary reference to a sprite
+        initGameWindow(1920, 1080);
+        initTileMap("backgroundMap.txt", "map.txt");
 
-        // Load the tile map and print it out so we can check it is valid
-        tmapBackground.loadMap("maps", "backgroundMap.txt");
-        tmap.loadMap("maps", "map.txt");
+        initSprites();
 
-        bgImage = loadImage("images/jungle_bg.png");
+        initBackgroundAnimation();
 
-        //setSize(tmap.getPixelWidth()/4, tmap.getPixelHeight());
-        setSize(1920, 1080);
+        initBackgroundMusic("sounds/bgmusic.wav");
+
+        initialiseGame();
+    }
+
+
+    private void initGameWindow(int width, int height) {
+        setSize(width, height);
         setVisible(true);
+    }
 
-        //sprites for player character
-        playerIdle = new Animation();
-        playerIdle.loadAnimationFromSheet("images/Idle.png", 4, 1, 250);
+    private void initTileMap(String backgroundMapPath, String mapPath) {
+        tmapBackground.loadMap("maps", backgroundMapPath);
+        tmap.loadMap("maps", mapPath);
+        System.out.println(tmap);
+    }
 
-        playerRun = new Animation();
-        playerRun.loadAnimationFromSheet("images/Run.png", 7, 1, 150);
-
-        playerArrow = new Animation();
-        playerArrow.loadAnimationFromSheet("images/arrow.png", 3, 1, 250);
-
-        playerDeath = new Animation();
-        playerDeath.loadAnimationFromSheet("images/Dead.png", 6, 1, 450);
-
-        //sprite for enemies
-        enemyKnightRun = new Animation();
-        enemyKnightRun.loadAnimationFromSheet("images/enemyRun.png", 7, 1, 450);
-
-        enemyKnightIdle = new Animation();
-        enemyKnightIdle.loadAnimationFromSheet("images/enemyIdle.png", 4, 1, 250);
-
-        // Initialise the player with an animation
+    private void initSprites() {
+        // Player animations
+        playerIdle = loadAnimationFromSheet("images/Idle.png", 4, 250);
+        playerRun = loadAnimationFromSheet("images/Run.png", 7, 150);
+        playerArrow = loadAnimationFromSheet("images/arrow.png", 3, 250);
+        playerDeath = loadAnimationFromSheet("images/Dead.png", 6, 450);
         player = new Sprite(playerIdle);
 
+        // Enemy animations
+        enemyKnightRun = loadAnimationFromSheet("images/enemyRun.png", 7, 250);
+        enemyKnightIdle = loadAnimationFromSheet("images/enemyIdle.png", 4, 250);
+        for (int i = 0; i < 4; i++) {
+            enemies.add(new Sprite(enemyKnightRun));
+        }
+
+        // Arrows
         arrow = new Sprite(playerArrow);
         arrowCollision = new Sprite(playerArrow);
+        arrow.setPosition(-100f, -100f);
+        arrowCollision.setPosition(-100f, -100f);
+    }
 
-        enemies.add(new Sprite(enemyKnightRun));
-        enemies.add(new Sprite(enemyKnightRun));
-        enemies.add(new Sprite(enemyKnightRun));
-        enemies.add(new Sprite(enemyKnightRun));
+    private Animation loadAnimationFromSheet(String path, int frames, int duration) {
+        Animation animation = new Animation();
+        animation.loadAnimationFromSheet(path, frames, 1, duration);
+        return animation;
+    }
 
-
-        bg1 = new Animation();
-        bg1.loadAnimationFromSheet("images/background/grassRoad.png", 1, 1, 100);
-        bg2 = new Animation();
-        bg2.loadAnimationFromSheet("images/background/grasses.png", 1, 1, 100);
-        bg3 = new Animation();
-        bg3.loadAnimationFromSheet("images/background/trees.png", 1, 1, 100);
-        bg4 = new Animation();
-        bg4.loadAnimationFromSheet("images/background/jungle_bg.png", 1, 1, 100);
-
+    private void initBackgroundAnimation() {
+        bg1 = loadAnimationFromSheet("images/background/grassRoad.png", 1, 100);
+        bg2 = loadAnimationFromSheet("images/background/grasses.png", 1, 100);
+        bg3 = loadAnimationFromSheet("images/background/trees.png", 1, 100);
+        bg4 = loadAnimationFromSheet("images/background/jungle_bg.png", 1, 100);
 
         background.add(new Sprite(bg4));
         background.add(new Sprite(bg3));
         background.add(new Sprite(bg2));
         background.add(new Sprite(bg1));
+    }
 
-        Sound sound = new Sound("sounds/bgmusic.wav");
+    private void initBackgroundMusic(String musicPath) {
+         backgroundMusic  = new Sound(musicPath);
         new Thread(() -> {
-            sound.start(); // Start playing the sound
-
+            backgroundMusic .start(); // Start playing the sound
             // Loop to keep the sound playing
             while (true) {
                 try {
@@ -169,11 +173,7 @@ public class Game extends GameCore {
                 }
             }
         }).start();
-
-        initialiseGame();
-        System.out.println(tmap);
     }
-
 
     /**
      * You will probably want to put code to restart a game in
@@ -266,15 +266,20 @@ public class Game extends GameCore {
         player.setOffsets(xo, yo);
         //  player.draw(g);
 
-        arrow.draw(g);
-       // arrowCollision.draw(g);
+        if(arrow.getVelocityX()<0){
+            arrow.setScale(-1,1);
+        }else {
+            arrow.setScale(1,1);
+        }
+        arrow.drawTransformed(g);
+
 
         player.drawTransformed(g);
         for (Sprite s : enemies) {
             s.setOffsets(xo, yo);
             if (s.getVelocityX() < 0) {
                 s.setScale(-1, 1);
-            } else {
+            } else if(s.getVelocityX() > 0){
                 s.setScale(1, 1);
             }
             s.drawTransformed(g);
@@ -330,8 +335,19 @@ public class Game extends GameCore {
         player.setAnimationSpeed(1.0f);
         for (Sprite s : enemies) {
             s.setAnimationSpeed(0.5f);
-            if (playerHealth > 0) {
+            if (playerHealth > 0 && s.getHealth() >1) { //if player isnt dead and enemy isnt dead sets the enemy animation to run
                 s.setAnimation(enemyKnightRun);
+            }
+            if(playerHealth>0 && s.getVelocityX()==0){ //checks if player is alive and if sprite isnt moving (sprite not moving means its dead)
+                s.setAnimation(playerDeath); //sets enemy animation to the death
+                s.setAnimationSpeed(1);
+                Timer timer = new Timer(); // starts a timer that runs for 2600 miliseconds so full death animation can play
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        s.damage(1); // damages enemy after animation so its then removed
+                    }
+                }, 2600);
             }
         }
 
@@ -372,38 +388,34 @@ public class Game extends GameCore {
 
 
         backgroundScrollSpeed(elapsed);
-        // Now update the sprites animation and position
-        //player.update(elapsed);
-        int i = 0;
+
         for (Sprite s : enemies) {
-            //s.update(elapsed);
+            //checks for player and enemy collison
             if (boundingBoxCollision(player, s)) {
                 if (s.getVelocityX() < 0) {
                     s.setVelocityX(s.getVelocityX() * -1);
                     player.setX(player.getX() - 63);
-                    System.out.println("Player"+ player.getX());
-                    System.out.println("enemy"+ s.getX());
                     playerHealth--;
-                } else {
+                    System.out.println(playerHealth);
+                } else if(s.getVelocityX() > 0){
                     s.setVelocityX(s.getVelocityX() * -1);
                     player.setX(player.getX() + 63);
                     playerHealth--;
                 }
+                else{
+                    // do nothing
+                    // despite having no code this else allows for a player to walk through enemies that are in death animation
+                    //[todo]Fix this, definitely a better way to deal with the death collision
+                }
 
             }
             if (boundingBoxCollision(arrowCollision, s)) {
-                s.damage(1);
+                s.setVelocityX(0);
                 arrow.hideSprite();
                 arrowCollision.hideSprite();
                 System.out.println("Arrow"+arrow.getX());
                 System.out.println("enemy"+s.getX());
             }
-
-            if (enemyHealth[i] <= 0) {
-                s.kill();
-            }
-            i++;
-
             s.update(elapsed);
         }
         Iterator<Sprite> it = enemies.iterator();
@@ -420,9 +432,10 @@ public class Game extends GameCore {
         player.update(elapsed);
         arrow.update(elapsed);
         arrowCollision.update(elapsed);
+
         // Then check for any collisions that may have occurred
         handleScreenEdge(player, tmap, elapsed);
-        enemyTileCollision(enemies, tmap);
+        enemyTileCollision( tmap);
         arrowTileCollisionCheck(arrowCollision,tmap);
         checkTileCollision(player, tmap, tmapBackground);
 
@@ -507,6 +520,7 @@ public class Game extends GameCore {
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
 
+
         if (keyCode == KeyEvent.VK_ESCAPE) System.exit(0);
 
         if (keyCode == KeyEvent.VK_RIGHT || keyCode == KeyEvent.VK_D) {
@@ -526,8 +540,20 @@ public class Game extends GameCore {
         }
         if (keyCode == KeyEvent.VK_SPACE) {
             playerAttack();
+            Sound sound = new Sound("sounds/ArrowFly.wav");
+            sound.start();
 
         }
+        if (e.getKeyCode() == KeyEvent.VK_2) {
+            // Increase volume
+            adjustBackgroundMusicVolume(0.1f);
+            System.out.println("Volume at " + String.format("%.1f", newVolume * 100) + "%" );
+        } if (e.getKeyCode() == KeyEvent.VK_1) {
+            // Decrease volume
+            adjustBackgroundMusicVolume(-0.1f);
+            System.out.println("Volume at " + String.format("%.1f", newVolume * 100) + "%" );
+        }
+
 
         addMouseListener(new MouseAdapter() {
             @Override
@@ -537,9 +563,19 @@ public class Game extends GameCore {
                     player.setY(e.getY());
                 }
             }
-
-
         });
+    }
+
+    private void adjustBackgroundMusicVolume(float adjustment) {
+        if (backgroundMusic != null && backgroundMusic.volumeControl != null) {
+            // Assuming you have a method or logic to get and adjust the current volume
+            float currentVolume = getCurrentVolumeFromDecibels(backgroundMusic.volumeControl.getValue());
+            newVolume = Math.max(0f, Math.min(1f, currentVolume + adjustment)); // Ensure volume is between 0 and 1
+            backgroundMusic.setVolume(newVolume);
+        }
+    }
+    private float getCurrentVolumeFromDecibels(float dB) {
+        return (float) Math.pow(10.0, dB / 20.0);
     }
 
     /**
@@ -592,7 +628,7 @@ public class Game extends GameCore {
         float tileWidth = tmap.getTileWidth();
         float tileHeight = tmap.getTileHeight();
 
-        ArrowLeftCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
+        ArrowLeftCollision( tmap, spriteX, spriteY, tileWidth, tileHeight);
         ArrowRightCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
     }
 
@@ -608,7 +644,7 @@ public class Game extends GameCore {
         }
         collidedTiles.add(aR);
     }
-    private void ArrowLeftCollision(Sprite sprite, TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
+    private void ArrowLeftCollision( TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
         int xtile = (int) (spriteX / tileWidth);
         int ytile = (int) (spriteY / tileHeight);
 
@@ -621,7 +657,7 @@ public class Game extends GameCore {
         collidedTiles.add(aL);
     }
 
-    public void enemyTileCollision(ArrayList<Sprite> s, TileMap tmap) {
+    public void enemyTileCollision( TileMap tmap) {
         // Empty out our current set of collided tiles
         collidedTiles.clear();
         for (Sprite x : enemies) {
@@ -807,11 +843,13 @@ public class Game extends GameCore {
             arrowCollision.setVelocityX(+0.7f);
         }
         if (player.getX() > (screenWidth / 2)) {
-            arrowX = 960;
+            arrowX = screenWidth / 2;
         } else {
             arrowX = (int) player.getX();
         }
+
         arrowCollision.setPosition(player.getX(),player.getY());
         arrow.setPosition(arrowX, arrowY);
+
     }
 }

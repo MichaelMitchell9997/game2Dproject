@@ -38,11 +38,11 @@
 s..........mgpddr..ldr...............................................................................................................................l
 r.......mggpdr.......................................................................................................................................l
 r.....mgpddddr.......................................................................................................................................l
-r...mgpddddddr............................................iiiiii.....................................................................................l
+r...mgpddddddr............................................1bbbbv.....................................................................................l
 ts...............x.............1bbb2s.....................w..........................................................................................l
 dcbbbbbbbbbbbbbbbkv.....mggs.......lts....................w..........................................................................................l
-dr....................mgpddtgggggggpdts...................w..........................................................................................l
-dtggggggggggggggggggggpdddddddddddddddtgggggggggggggggggggiiiiiigggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
+dr....................mgpddtgggggggpdts..........mggs.....w..........................................................................................l
+dtggggggggggggggggggggpdddddddddddddddtggggggggggpddrggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
 dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
 
 
