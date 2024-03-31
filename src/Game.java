@@ -5,7 +5,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -21,56 +20,61 @@ import game2D.*;
 // Student ID: ???????
 
 
-@SuppressWarnings("serial")
 
 
 public class Game extends GameCore {
 
 
-    // Useful game constants
-    float newVolume;
-    static int screenWidth = 1920;
-    static int screenHeight = 1080;
+    // Game Constants
+    public static final int SCREEN_WIDTH = 1920;
+    public static final int SCREEN_HEIGHT = 1080;
+    public static final int MAX_SCREEN_WIDTH = SCREEN_WIDTH * 5;
+    public static final float GRAVITY = 0.001f;
 
-    static int maxScreenWidth = (screenWidth * 5);
-    int xo = 0;
+    // Game State Flags
+    private boolean rightKeyPressed = false;
+    private boolean leftKeyPressed = false;
+    private boolean lastKeyRight = false;
+    private boolean lastKeyLeft = false;
+    private boolean jump = false;
+    private boolean debug = true;
+    private boolean onGround = true;
+    private boolean tileAbovePlayer = false;
+    private boolean playerMoving = false;
+    private boolean playerMovingRight = false;
 
-    public float gravity = 0.001f;
-
-    // Game state flags
-    boolean rightKeyPressed, leftKeyPressed, lastKeyRight, lastKeyLeft, jump = false;
-    boolean debug = true;
-
-    boolean onGround = true;
-    boolean TileAbovePlayer = false;
-    boolean playerMoving, playerMovingRight = false;
-
-
-    // Game resources
-    Animation playerIdle, playerRun, playerDeath, enemyRun, enemyIdle,enemyDeath,bossWalk, playerArrow, bg1, bg2, bg3, bg4;
-    private Image bgImage;
-
-    Sprite player = null;
-    Sprite arrow,arrowCollision,boss;
-
+    // Player Attributes
     private int playerHealth = 3;
+    private float newVolume = 1;
 
+    // Game Resources
+    private Animation playerIdle;
+    private Animation playerRun;
+    private Animation playerDeath;
+    private Animation enemyRun;
+    private Animation enemyDeath;
+    private Animation bossWalk;
+    private Animation playerArrow;
+    private int xo;
 
-    ArrayList<Sprite> background = new ArrayList<>();
-    ArrayList<Sprite> enemies = new ArrayList<>();
+    private Sprite player = null;
+    private Sprite arrow;
+    private Sprite arrowCollision;
+    private Sprite boss;
 
-    ArrayList<Tile> collidedTiles = new ArrayList<Tile>();
+    private ArrayList<Sprite> background = new ArrayList<>();
+    private ArrayList<Sprite> enemies = new ArrayList<>();
+    private ArrayList<Tile> collidedTiles = new ArrayList<>();
 
-    TileMap tmap = new TileMap();    // Our tile map, note that we load it in init()
-    TileMap tmapBackground = new TileMap();
+    // Tile Maps
+    private TileMap tmap = new TileMap(); // Note: loaded in init()
+    private TileMap tmapBackground = new TileMap();
+    private TileMap tmapDoor = new TileMap();
 
-    TileMap tmapDoor = new TileMap();
-
-    long total;
-
+    // Miscellaneous
+    private int totalScore;
     public Sound backgroundMusic;
 
-    //ImageIcon overlayImage = new ImageIcon("images/GameOver.png");
 
     /**
      * The obligatory main method that creates
@@ -84,7 +88,7 @@ public class Game extends GameCore {
 
         gct.init();
         // Start in windowed mode with the given screen height and width
-        gct.run(false, screenWidth, screenHeight);
+        gct.run(false, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
 
 
@@ -99,7 +103,7 @@ public class Game extends GameCore {
      */
     public void init() {
         initGameWindow(1920, 1080);
-        initTileMap("backgroundMap.txt", "map.txt","doorMap.txt");
+        initTileMap("backgroundMap.txt", "map.txt", "doorMap.txt");
 
         initSprites();
 
@@ -116,9 +120,9 @@ public class Game extends GameCore {
         setVisible(true);
     }
 
-    private void initTileMap(String backgroundMapPath, String mapPath,String doorMapPath) {
+    private void initTileMap(String backgroundMapPath, String mapPath, String doorMapPath) {
         tmapBackground.loadMap("maps", backgroundMapPath);
-        tmapDoor.loadMap("maps",doorMapPath);
+        tmapDoor.loadMap("maps", doorMapPath);
         tmap.loadMap("maps", mapPath);
         System.out.println(tmap);
     }
@@ -133,19 +137,19 @@ public class Game extends GameCore {
 
         // Enemy animations
         enemyRun = loadAnimationFromSheet("images/slimeRun.png", 13, 150);
-        enemyIdle = loadAnimationFromSheet("images/slimeIdle.png", 8, 250);
-        enemyDeath = loadAnimationFromSheet("images/slimeDead.png",3,300);
+        enemyDeath = loadAnimationFromSheet("images/slimeDead.png", 3, 300);
         for (int i = 0; i < 4; i++) {
             enemies.add(new Sprite(enemyRun));
         }
 
-        // Arrows
+        //Player Arrow attack
         arrow = new Sprite(playerArrow);
         arrowCollision = new Sprite(playerArrow);
         arrow.setPosition(-100f, -100f);
         arrowCollision.setPosition(-100f, -100f);
 
-        bossWalk = loadAnimationFromSheet("images/bossRun.png",10,200);
+        //boss
+        bossWalk = loadAnimationFromSheet("images/bossRun.png", 10, 200);
         boss = new Sprite(bossWalk);
     }
 
@@ -156,10 +160,10 @@ public class Game extends GameCore {
     }
 
     private void initBackgroundAnimation() {
-        bg1 = loadAnimationFromSheet("images/background/grassRoad.png", 1, 100);
-        bg2 = loadAnimationFromSheet("images/background/grasses.png", 1, 100);
-        bg3 = loadAnimationFromSheet("images/background/trees.png", 1, 100);
-        bg4 = loadAnimationFromSheet("images/background/jungle_bg.png", 1, 100);
+        Animation bg1 = loadAnimationFromSheet("images/background/grassRoad.png", 1, 100);
+        Animation bg2 = loadAnimationFromSheet("images/background/grasses.png", 1, 100);
+        Animation bg3 = loadAnimationFromSheet("images/background/trees.png", 1, 100);
+        Animation bg4 = loadAnimationFromSheet("images/background/jungle_bg.png", 1, 100);
 
         background.add(new Sprite(bg4));
         background.add(new Sprite(bg3));
@@ -168,9 +172,9 @@ public class Game extends GameCore {
     }
 
     private void initBackgroundMusic(String musicPath) {
-         backgroundMusic  = new Sound(musicPath);
+        backgroundMusic = new Sound(musicPath);
         new Thread(() -> {
-            backgroundMusic .start(); // Start playing the sound
+            backgroundMusic.start(); // Start playing the sound
             // Loop to keep the sound playing
             while (true) {
                 try {
@@ -188,13 +192,12 @@ public class Game extends GameCore {
      * the game when the player loses.
      */
     public void initialiseGame() {
-        total = 0;
         player.setPosition(200, 960);
         player.setVelocity(0, 0);
         player.show();
 
-        boss.setPosition(8000,640);
-        boss.setVelocity(0.1f,0f);
+        boss.setPosition(8000, 640);
+        boss.setVelocity(0.1f, 0f);
         boss.show();
 
 
@@ -221,48 +224,37 @@ public class Game extends GameCore {
      * debugging output that is drawn directly to the game screen.
      */
     public void draw(Graphics2D g) {
-        // Be careful about the order in which you draw objects - you
-        // should draw the background first, then work your way 'forward'
-
-        // First work out how much we need to shift the view in order to
-        // see where the player is. To do this, we adjust the offset so that
-        // it is relative to the player's position along with a shift
-        // int xo = 0;
-
-        if (player.getX() < screenWidth / 2) {
+        if (player.getX() < (float) SCREEN_WIDTH / 2) {
             //xo = -(int) player.getX() + ((screenWidth - Math.round(player.getX())));
-            //was trying to do some math where the players postion was minus the screen width until half way where it would then lock on
-            //but turns out i just needed to have xo=0
+            //was trying to do some math where the players position was minus the screen width until half way where it would then lock on
+            //but turns out I just needed to have xo=0
             xo = 0;
-        } else if (player.getX() > maxScreenWidth - screenWidth / 2) {
-            xo = -(maxScreenWidth - screenWidth);
+        } else if (player.getX() > MAX_SCREEN_WIDTH - (float) SCREEN_WIDTH / 2) {
+            xo = -(MAX_SCREEN_WIDTH - SCREEN_WIDTH);
         } else {
-            xo = -(int) player.getX() + screenWidth / 2;
+            xo = -(int) player.getX() + SCREEN_WIDTH / 2;
         }
-
-        //int xo = -(int)player.getX() + screenWidth/2;
         int yo = 0;
 
         g.setColor(Color.white);
         g.fillRect(0, 0, getWidth(), getHeight());
-        g.drawImage(bgImage, xo, yo, null);
 
 
         // Apply offsets to sprites then draw them
         for (Sprite s : background) {
             for (int i = 1; i < 7; i++) {
-                s.setOffsets(xo + (screenWidth * i), yo);
+                s.setOffsets(xo + (SCREEN_WIDTH * i), yo);
                 s.draw(g);
             }
             for (int i = 0; i < 2; i++) {
-                s.setOffsets(xo - (screenWidth * i), yo);
+                s.setOffsets(xo - (SCREEN_WIDTH * i), yo);
                 s.draw(g);
             }
         }
 
         // Apply offsets to tile map and draw  it
         tmapBackground.draw(g, xo, yo);
-        tmapDoor.draw(g,xo,yo);
+        tmapDoor.draw(g, xo, yo);
         tmap.draw(g, xo, yo);
 
         AffineTransform transform = new AffineTransform();
@@ -274,20 +266,16 @@ public class Game extends GameCore {
         } else if (rightKeyPressed || lastKeyRight) {
             player.setScale(1, 1);
         }
-        //   g.drawImage(player.getImage(), transform, null);
 
         player.setOffsets(xo, yo);
-        boss.setOffsets(xo,yo);
-        //  player.draw(g);
+        boss.setOffsets(xo, yo);
 
-        if(arrow.getVelocityX()<0){
-            arrow.setScale(-1,1);
-        }else {
-            arrow.setScale(1,1);
+        if (arrow.getVelocityX() < 0) {
+            arrow.setScale(-1, 1);
+        } else {
+            arrow.setScale(1, 1);
         }
         arrow.drawTransformed(g);
-
-        //boss.setScale(1,1);
 
 
         player.drawTransformed(g);
@@ -295,7 +283,7 @@ public class Game extends GameCore {
             s.setOffsets(xo, yo);
             if (s.getVelocityX() < 0) {
                 s.setScale(-1, 1);
-            } else if(s.getVelocityX() > 0){
+            } else if (s.getVelocityX() > 0) {
                 s.setScale(1, 1);
             }
             s.drawTransformed(g);
@@ -303,16 +291,25 @@ public class Game extends GameCore {
         boss.draw(g);
 
         // Show score and status information
-        String msg = String.format("Score: %d", total / 100);
-        g.setColor(Color.darkGray);
+        String msg = String.format("Score: "+ totalScore);
+        System.out.println(totalScore);
+        g.setColor(Color.RED);
         g.drawString(msg,
 
-                getWidth() - 100, 50);
+                getWidth() - 1910, 50);
+
+        String musicVolume = String.format("Music Volume: %.0f %%", newVolume *100 );
+        Font largeFont = new Font("Serif", Font.BOLD, 24);
+        g.setColor(Color.RED);
+        g.setFont(largeFont);
+        g.drawString(musicVolume,
+
+                getWidth() - 1910, 90);
 
         if (debug) {
             tmap.drawBorder(g, xo, yo, Color.black);
 
-            g.setColor(Color.red);
+            g.setColor(Color.RED);
             player.drawBoundingBox(g);
             arrow.drawBoundingBox(g);
             boss.drawBoundingBox(g);
@@ -322,14 +319,14 @@ public class Game extends GameCore {
             }
 
             g.drawString(String.format("Player: %.0f,%.0f", player.getX(), player.getY()),
-                    getWidth() - 100, 70);
+                    getWidth() - 200, 70);
 
             drawCollidedTiles(g, tmap, xo, yo);
         }
     }
 
     public void drawCollidedTiles(Graphics2D g, TileMap map, int xOffset, int yOffset) {
-        if (collidedTiles.size() > 0) {
+        if (!collidedTiles.isEmpty()) {
             int tileWidth = map.getTileWidth();
             int tileHeight = map.getTileHeight();
 
@@ -348,21 +345,26 @@ public class Game extends GameCore {
     public void update(long elapsed) {
 
         // Make adjustments to the speed of the sprite due to gravity
-        player.setVelocityY(player.getVelocityY() + (gravity * elapsed));
+        player.setVelocityY(player.getVelocityY() + (GRAVITY * elapsed));
 
         player.setAnimationSpeed(1.0f);
 
         for (Sprite s : enemies) {
-            if (playerHealth > 0 && s.getHealth() >1) { //if player isnt dead and enemy isnt dead sets the enemy animation to run
+            if (playerHealth > 0 && s.getHealth() > 1) { //if player isn't dead and enemy isn't dead sets the enemy animation to run
                 s.setAnimation(enemyRun);
             }
-            if(playerHealth>0 && s.getVelocityX()==0){ //checks if player is alive and if sprite isnt moving (sprite not moving means its dead)
+            if (playerHealth > 0 && s.getVelocityX() == 0) { //checks if player is alive and if sprite isn't moving (sprite not moving means its dead)
                 s.setAnimation(enemyDeath); //sets enemy animation to the death
-                Timer timer = new Timer(); // starts a timer that runs for 2600 miliseconds so full death animation can play
+                if (!s.scored) { // Check if the score has already been given for this enemy death
+                    totalScore += 10;
+                    s.scored = true;
+                }
+                Timer timer = new Timer();
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
                         s.damage(1); // damages enemy after animation so its then removed
+
                     }
                 }, 850);
             }
@@ -389,7 +391,7 @@ public class Game extends GameCore {
 
         if (jump) {
             if (onGround) {
-                if (!TileAbovePlayer) {
+                if (!tileAbovePlayer) {
                     player.setVelocityY(-0.4f); // Initial jump velocity
                     jump = false; // Reset the jump flag
                     onGround = false;
@@ -397,7 +399,6 @@ public class Game extends GameCore {
                 }
 
             } else {
-                //player.setVelocityY(0.0f);
                 player.setVelocityY(player.getVelocityY());
             }
 
@@ -407,19 +408,18 @@ public class Game extends GameCore {
         backgroundScrollSpeed(elapsed);
 
         for (Sprite s : enemies) {
-            //checks for player and enemy collison
+            //checks for player and enemy collision
             if (boundingBoxCollision(player, s)) {
                 if (s.getVelocityX() < 0) {
                     s.setVelocityX(s.getVelocityX() * -1);
                     player.setX(player.getX() - 63);
                     playerHealth--;
                     System.out.println(playerHealth);
-                } else if(s.getVelocityX() > 0){
+                } else if (s.getVelocityX() > 0) {
                     s.setVelocityX(s.getVelocityX() * -1);
                     player.setX(player.getX() + 63);
                     playerHealth--;
-                }
-                else{
+                } else {
                     // do nothing
                     // despite having no code this else allows for a player to walk through enemies that are in death animation
                     //[todo]Fix this, definitely a better way to deal with the death collision
@@ -430,18 +430,12 @@ public class Game extends GameCore {
                 s.setVelocityX(0);
                 arrow.hideSprite();
                 arrowCollision.hideSprite();
-                System.out.println("Arrow"+arrow.getX());
-                System.out.println("enemy"+s.getX());
             }
             s.update(elapsed);
         }
-        Iterator<Sprite> it = enemies.iterator();
-        while (it.hasNext()) {
-            Sprite s = it.next();
-            if (!s.isActive()) {
-                it.remove(); // This removes the sprite if it has been marked as inactive ( killed )
-            }
-        }
+        // This removes the sprite if it has been marked as inactive ( killed )
+        enemies.removeIf(s -> !s.isActive());
+
         if (playerHealth < 1) {
             playerDeathCycle();
         }
@@ -452,11 +446,10 @@ public class Game extends GameCore {
         arrowCollision.update(elapsed);
 
         // Then check for any collisions that may have occurred
-        handleScreenEdge(player, tmap, elapsed);
-        enemyTileCollision( tmap);
-        arrowTileCollisionCheck(arrowCollision,tmap);
-        checkTileCollision(player, tmap, tmapBackground,tmapDoor);
-        bossTileCollision(boss,tmap);
+        enemyTileCollision(tmap);
+        arrowTileCollisionCheck(arrowCollision, tmap);
+        checkTileCollision(player, tmap, tmapBackground, tmapDoor);
+        bossTileCollision(boss, tmap);
 
 
     }
@@ -508,94 +501,14 @@ public class Game extends GameCore {
 
     }
 
-    /**
-     * Checks and handles collisions with the edge of the screen. You should generally
-     * use tile map collisions to prevent the player leaving the game area. This method
-     * is only included as a temporary measure until you have properly developed your
-     * tile maps.
-     *
-     * @param s       The Sprite to check collisions for
-     * @param tmap    The tile map to check
-     * @param elapsed How much time has gone by since the last call
-     */
-    public void handleScreenEdge(Sprite s, TileMap tmap, long elapsed) {
-        // This method just checks if the sprite has gone off the bottom screen.
-        // Ideally you should use tile collision instead of this approach
-
-        float difference = s.getY() + s.getHeight() - tmap.getPixelHeight();
-        if (difference > 0) {
-            // Put the player back on the map according to how far over they were
-            s.setY(tmap.getPixelHeight() - s.getHeight() - (int) (difference));
-        }
-    }
-
-
-    /**
-     * Override of the keyPressed event defined in GameCore to catch our
-     * own events
-     *
-     * @param e The event that has been generated
-     */
-    public void keyPressed(KeyEvent e) {
-        int keyCode = e.getKeyCode();
-
-
-        if (keyCode == KeyEvent.VK_ESCAPE) System.exit(0);
-
-        if (keyCode == KeyEvent.VK_RIGHT || keyCode == KeyEvent.VK_D) {
-            rightKeyPressed = true;
-        }
-        if (keyCode == KeyEvent.VK_LEFT || keyCode == KeyEvent.VK_A) {
-            leftKeyPressed = true;
-        }
-        if (keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_W) {
-            jump = true;
-        }
-        if (keyCode == KeyEvent.VK_EQUALS) {
-            debug = !debug;
-        }
-        if (keyCode == KeyEvent.VK_R) { //resets the game in case user gets stuck
-            initialiseGame();
-        }
-        if (keyCode == KeyEvent.VK_SPACE) {
-            playerAttack();
-            Sound sound = new Sound("sounds/ArrowFly.wav");
-            sound.start();
-
-        }
-        if(keyCode == KeyEvent.VK_X){
-            player.setPosition(8000,960);
-        }
-        if (e.getKeyCode() == KeyEvent.VK_2) {
-            // Increase volume
-            adjustBackgroundMusicVolume(0.1f);
-            System.out.println("Volume at " + String.format("%.1f", newVolume * 100) + "%" );
-        } if (e.getKeyCode() == KeyEvent.VK_1) {
-            // Decrease volume
-            adjustBackgroundMusicVolume(-0.1f);
-            System.out.println("Volume at " + String.format("%.1f", newVolume * 100) + "%" );
-        }
-
-
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (player.getX() < (screenWidth / 2)) {
-                    player.setX(e.getX());
-                    player.setY(e.getY());
-                }
-            }
-        });
-    }
-
     private void adjustBackgroundMusicVolume(float adjustment) {
         if (backgroundMusic != null && backgroundMusic.volumeControl != null) {
-            // Assuming you have a method or logic to get and adjust the current volume
             float currentVolume = getCurrentVolumeFromDecibels(backgroundMusic.volumeControl.getValue());
-            newVolume = Math.max(0f, Math.min(1f, currentVolume + adjustment)); // Ensure volume is between 0 and 1
+            newVolume = Math.max(0f, Math.min(1f, currentVolume + adjustment));
             backgroundMusic.setVolume(newVolume);
         }
     }
+
     private float getCurrentVolumeFromDecibels(float dB) {
         return (float) Math.pow(10.0, dB / 20.0);
     }
@@ -635,14 +548,15 @@ public class Game extends GameCore {
         //was having issues with code from the top left and top right collisions breaking each other so i had to split them up into different methods
         checkAboveCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
         checkBottomLeftCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
-        checkPlayerCollison(s, tmapbg, tmap, spriteX, spriteY, tileWidth, tileHeight);
-        checkPlayerCollison(s, tmapDoor, tmap, spriteX, spriteY, tileWidth, tileHeight);
+        checkPlayerCollision(s, tmapbg, tmap, spriteX, spriteY, tileWidth, tileHeight);
+        checkPlayerCollision(s, tmapDoor, tmap, spriteX, spriteY, tileWidth, tileHeight);
         checkMiddleLeftCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
-        checkMiddleRightCollsion(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
+        checkMiddleRightCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
 
 
     }
-    public void arrowTileCollisionCheck(Sprite s, TileMap tmap){
+
+    public void arrowTileCollisionCheck(Sprite s, TileMap tmap) {
         collidedTiles.clear();
 
         float spriteX = s.getX();
@@ -667,7 +581,8 @@ public class Game extends GameCore {
         }
         collidedTiles.add(aR);
     }
-    private void ArrowLeftCollision( TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
+
+    private void ArrowLeftCollision(TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
         int xtile = (int) (spriteX / tileWidth);
         int ytile = (int) (spriteY / tileHeight);
 
@@ -680,7 +595,7 @@ public class Game extends GameCore {
         collidedTiles.add(aL);
     }
 
-    public void bossTileCollision(Sprite s, TileMap tmap){
+    public void bossTileCollision(Sprite s, TileMap tmap) {
         float spriteX = s.getX();
         float spriteY = s.getY();
 
@@ -689,7 +604,8 @@ public class Game extends GameCore {
         enemyMiddleLeftCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
         enemyMiddleRightCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
     }
-    public void enemyTileCollision( TileMap tmap) {
+
+    public void enemyTileCollision(TileMap tmap) {
         // Empty out our current set of collided tiles
         collidedTiles.clear();
         for (Sprite x : enemies) {
@@ -743,7 +659,7 @@ public class Game extends GameCore {
         if (tl != null && tl.getCharacter() != '.') {
             if (tileBelow != null && tileBelow.getCharacter() == '.') {
                 sprite.setX(xtile * tileWidth + tileWidth);
-                sprite.setY(spriteY + gravity);
+                sprite.setY(spriteY + GRAVITY);
             } else {
                 sprite.setX(xtile * tileWidth + tileWidth);
                 sprite.stop();
@@ -759,7 +675,7 @@ public class Game extends GameCore {
 
     }
 
-    private void checkMiddleRightCollsion(Sprite sprite, TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
+    private void checkMiddleRightCollision(Sprite sprite, TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
 
         boolean tileCollisionTR = false;
         int xtile = (int) ((spriteX + sprite.getWidth()) / tileWidth);
@@ -774,7 +690,7 @@ public class Game extends GameCore {
         if (tr != null && tr.getCharacter() != '.') {
             if (tileBelowRight != null && tileBelowRight.getCharacter() == '.') {
                 sprite.setX(xtile * tileWidth - tileWidth);
-                sprite.setY(spriteY + gravity);
+                sprite.setY(spriteY + GRAVITY);
                 player.setVelocityX(0.0f);
             } else {
                 sprite.setX(xtile * tileWidth - tileWidth);
@@ -783,10 +699,7 @@ public class Game extends GameCore {
             tileCollisionTR = true;
             collidedTiles.add(tr);
         }
-        if (tileCollisionTR) {
-            playerMovingRight = false;
-        } else
-            playerMovingRight = true;
+        playerMovingRight = !tileCollisionTR;
     }
 
 
@@ -802,18 +715,17 @@ public class Game extends GameCore {
             sprite.stop();
             onGround = true;
         } else {
-            sprite.setX(spriteX + gravity);
+            sprite.setX(spriteX + GRAVITY);
         }
         collidedTiles.add(bl);
     }
 
-    private void checkPlayerCollison(Sprite sprite, TileMap tileMap, TileMap tmap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
+    private void checkPlayerCollision(Sprite sprite, TileMap tileMap, TileMap tmap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
         int xtile = (int) ((spriteX + (tileWidth / 2)) / tileWidth);
         int ytile = (int) (spriteY / tileHeight);
         Tile pc = tileMap.getTile(xtile, ytile);
 
         if (pc != null && pc.getCharacter() == '$') {
-            //new Thread(() -> playSoundEffect("sounds/activeWayPoint.wav")).start();
             Sound sound = new Sound("sounds/activeWayPoint.wav");
             sound.start();
             tileMap.setTileChar('£', xtile, ytile);
@@ -825,7 +737,7 @@ public class Game extends GameCore {
 
         }
         if (pc != null && pc.getCharacter() == 'o') {
-        //code to go to next level here
+            //code to go to next level here
 
         }
         collidedTiles.add(pc);
@@ -836,40 +748,126 @@ public class Game extends GameCore {
         int ytile = (int) ((spriteY - sprite.getHeight()) / tileHeight);
         Tile ab = tileMap.getTile(xtile, ytile);
 
-        if (ab != null && ab.getCharacter() != '.') {
+        tileAbovePlayer = ab != null && ab.getCharacter() != '.';
+        collidedTiles.add(ab);
+    }
+
+/*    Below is an attempt to make my vertical collision work properly and not just be a flag that doesnt allow the player to jump.
+    this code has issues too though as if the tile is only 1 tile in height the player will phase through it.*/
+
+/*    private void checkAboveCollision(Sprite sprite, TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
+        int xtile = (int) ((spriteX + (tileWidth / 2)) / tileWidth);
+        int ytile = (int) ((spriteY - sprite.getHeight()) / tileHeight);
+        Tile ab = tileMap.getTile(xtile, ytile);
+
+        if (ab != null && ab.getCharacter() != '.' && sprite.getVelocityY() < 0) {
+            sprite.setY((ytile + 1) * tileHeight);
+            sprite.setVelocityY(0);
             TileAbovePlayer = true;
         } else {
             TileAbovePlayer = false;
         }
         collidedTiles.add(ab);
+    }*/
+
+    /**
+     * Override of the keyPressed event defined in GameCore to catch our
+     * own events
+     *
+     * @param e The event that has been generated
+     */
+    public void keyPressed(KeyEvent e) {
+        int keyCode = e.getKeyCode();
+
+        switch (keyCode) {
+            case KeyEvent.VK_ESCAPE:
+                System.exit(0);
+                break;
+
+            case KeyEvent.VK_RIGHT:
+            case KeyEvent.VK_D:
+                rightKeyPressed = true;
+                break;
+
+            case KeyEvent.VK_LEFT:
+            case KeyEvent.VK_A:
+                leftKeyPressed = true;
+                break;
+
+            case KeyEvent.VK_UP:
+            case KeyEvent.VK_W:
+                jump = true;
+                break;
+
+            case KeyEvent.VK_EQUALS:
+                debug = !debug;
+                break;
+
+            case KeyEvent.VK_R: // Resets the game in case the user gets stuck
+                initialiseGame();
+                break;
+
+            case KeyEvent.VK_SPACE:
+                playerAttack();
+                Sound sound = new Sound("sounds/ArrowFly.wav");
+                sound.start();
+                break;
+
+            case KeyEvent.VK_X:
+                player.setPosition(8000, 960);
+                break;
+
+            case KeyEvent.VK_2: // Increase volume
+                adjustBackgroundMusicVolume(0.1f);
+                System.out.println("Volume at " + String.format("%.1f", newVolume * 100) + "%");
+                break;
+
+            case KeyEvent.VK_1: // lower volume
+                adjustBackgroundMusicVolume(-0.1f);
+                System.out.println("Volume at " + String.format("%.1f", newVolume * 100) + "%");
+                break;
+
+            default:
+                break;
+        }
+
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (player.getX() < ((float) SCREEN_WIDTH / 2)) {
+                    player.setX(e.getX());
+                    player.setY(e.getY());
+                }
+            }
+        });
     }
 
     public void keyReleased(KeyEvent e) {
 
-	/*	switch (key)
-		{
-			case KeyEvent.VK_ESCAPE : stop(); break;
-			case KeyEvent.VK_UP     : flap = false; break;
-			case KeyEvent.VK_RIGHT  : moveRight = false; break;
-			default :  break;
-		}*/
         int keyCode = e.getKeyCode();
 
-        if (keyCode == KeyEvent.VK_RIGHT || keyCode == KeyEvent.VK_D) {
-            rightKeyPressed = false;
-        }
-        if (keyCode == KeyEvent.VK_LEFT || keyCode == KeyEvent.VK_A) {
-            leftKeyPressed = false;
-        }
-        if (keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_W) {
-            jump = false;
+        switch (keyCode) {
+            case KeyEvent.VK_RIGHT:
+            case KeyEvent.VK_D:
+                rightKeyPressed = false;
+                break;
+            case KeyEvent.VK_LEFT:
+            case KeyEvent.VK_A:
+                leftKeyPressed = false;
+                break;
+            case KeyEvent.VK_UP:
+            case KeyEvent.VK_W:
+                jump = false;
+                break;
+            default:
+                break;
         }
 
         e.consume();
     }
 
     private void playerAttack() {
-        int arrowX ;
+        int arrowX;
         int arrowY = (int) player.getY();
         if (lastKeyLeft) {
             arrow.setVelocityX(-0.7f);
@@ -878,13 +876,13 @@ public class Game extends GameCore {
             arrow.setVelocityX(+0.7f);
             arrowCollision.setVelocityX(+0.7f);
         }
-        if (player.getX() > (screenWidth / 2)) {
-            arrowX = screenWidth / 2;
+        if (player.getX() > ((float) SCREEN_WIDTH / 2)) {
+            arrowX = SCREEN_WIDTH / 2;
         } else {
             arrowX = (int) player.getX();
         }
 
-        arrowCollision.setPosition(player.getX(),player.getY());
+        arrowCollision.setPosition(player.getX(), player.getY());
         arrow.setPosition(arrowX, arrowY);
 
     }

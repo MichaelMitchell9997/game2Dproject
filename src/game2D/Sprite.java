@@ -13,6 +13,7 @@ import java.util.Iterator;
  */
 public class Sprite {
 
+    public boolean scored;
     // The current Animation to use for this sprite
     private Animation anim;
 
@@ -450,6 +451,10 @@ public class Sprite {
     public void hideSprite(){
         setVelocityX(0);
         setPosition(-100,-100);
+    }
+
+    public Boolean scored(){
+        return this.scored;
     }
 }
     
