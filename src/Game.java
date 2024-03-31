@@ -47,11 +47,11 @@ public class Game extends GameCore {
 
 
     // Game resources
-    Animation playerIdle, playerRun, playerDeath, enemyKnightRun, enemyKnightIdle, playerArrow, bg1, bg2, bg3, bg4;
+    Animation playerIdle, playerRun, playerDeath, enemyRun, enemyIdle,enemyDeath,bossWalk, playerArrow, bg1, bg2, bg3, bg4;
     private Image bgImage;
 
     Sprite player = null;
-    Sprite arrow,arrowCollision;
+    Sprite arrow,arrowCollision,boss;
 
     private int playerHealth = 3;
 
@@ -63,6 +63,8 @@ public class Game extends GameCore {
 
     TileMap tmap = new TileMap();    // Our tile map, note that we load it in init()
     TileMap tmapBackground = new TileMap();
+
+    TileMap tmapDoor = new TileMap();
 
     long total;
 
@@ -97,7 +99,7 @@ public class Game extends GameCore {
      */
     public void init() {
         initGameWindow(1920, 1080);
-        initTileMap("backgroundMap.txt", "map.txt");
+        initTileMap("backgroundMap.txt", "map.txt","doorMap.txt");
 
         initSprites();
 
@@ -114,8 +116,9 @@ public class Game extends GameCore {
         setVisible(true);
     }
 
-    private void initTileMap(String backgroundMapPath, String mapPath) {
+    private void initTileMap(String backgroundMapPath, String mapPath,String doorMapPath) {
         tmapBackground.loadMap("maps", backgroundMapPath);
+        tmapDoor.loadMap("maps",doorMapPath);
         tmap.loadMap("maps", mapPath);
         System.out.println(tmap);
     }
@@ -129,10 +132,11 @@ public class Game extends GameCore {
         player = new Sprite(playerIdle);
 
         // Enemy animations
-        enemyKnightRun = loadAnimationFromSheet("images/enemyRun.png", 7, 250);
-        enemyKnightIdle = loadAnimationFromSheet("images/enemyIdle.png", 4, 250);
+        enemyRun = loadAnimationFromSheet("images/slimeRun.png", 13, 150);
+        enemyIdle = loadAnimationFromSheet("images/slimeIdle.png", 8, 250);
+        enemyDeath = loadAnimationFromSheet("images/slimeDead.png",3,300);
         for (int i = 0; i < 4; i++) {
-            enemies.add(new Sprite(enemyKnightRun));
+            enemies.add(new Sprite(enemyRun));
         }
 
         // Arrows
@@ -140,6 +144,9 @@ public class Game extends GameCore {
         arrowCollision = new Sprite(playerArrow);
         arrow.setPosition(-100f, -100f);
         arrowCollision.setPosition(-100f, -100f);
+
+        bossWalk = loadAnimationFromSheet("images/bossRun.png",10,200);
+        boss = new Sprite(bossWalk);
     }
 
     private Animation loadAnimationFromSheet(String path, int frames, int duration) {
@@ -185,6 +192,11 @@ public class Game extends GameCore {
         player.setPosition(200, 960);
         player.setVelocity(0, 0);
         player.show();
+
+        boss.setPosition(8000,640);
+        boss.setVelocity(0.1f,0f);
+        boss.show();
+
 
         for (int i = 0; i < enemies.size(); i++) {
             Sprite s = enemies.get(i);
@@ -250,6 +262,7 @@ public class Game extends GameCore {
 
         // Apply offsets to tile map and draw  it
         tmapBackground.draw(g, xo, yo);
+        tmapDoor.draw(g,xo,yo);
         tmap.draw(g, xo, yo);
 
         AffineTransform transform = new AffineTransform();
@@ -264,6 +277,7 @@ public class Game extends GameCore {
         //   g.drawImage(player.getImage(), transform, null);
 
         player.setOffsets(xo, yo);
+        boss.setOffsets(xo,yo);
         //  player.draw(g);
 
         if(arrow.getVelocityX()<0){
@@ -272,6 +286,8 @@ public class Game extends GameCore {
             arrow.setScale(1,1);
         }
         arrow.drawTransformed(g);
+
+        //boss.setScale(1,1);
 
 
         player.drawTransformed(g);
@@ -284,6 +300,7 @@ public class Game extends GameCore {
             }
             s.drawTransformed(g);
         }
+        boss.draw(g);
 
         // Show score and status information
         String msg = String.format("Score: %d", total / 100);
@@ -298,6 +315,7 @@ public class Game extends GameCore {
             g.setColor(Color.red);
             player.drawBoundingBox(g);
             arrow.drawBoundingBox(g);
+            boss.drawBoundingBox(g);
             arrowCollision.drawBoundingBox(g);
             for (Sprite s : enemies) {
                 s.drawBoundingBox(g);
@@ -333,21 +351,20 @@ public class Game extends GameCore {
         player.setVelocityY(player.getVelocityY() + (gravity * elapsed));
 
         player.setAnimationSpeed(1.0f);
+
         for (Sprite s : enemies) {
-            s.setAnimationSpeed(0.5f);
             if (playerHealth > 0 && s.getHealth() >1) { //if player isnt dead and enemy isnt dead sets the enemy animation to run
-                s.setAnimation(enemyKnightRun);
+                s.setAnimation(enemyRun);
             }
             if(playerHealth>0 && s.getVelocityX()==0){ //checks if player is alive and if sprite isnt moving (sprite not moving means its dead)
-                s.setAnimation(playerDeath); //sets enemy animation to the death
-                s.setAnimationSpeed(1);
+                s.setAnimation(enemyDeath); //sets enemy animation to the death
                 Timer timer = new Timer(); // starts a timer that runs for 2600 miliseconds so full death animation can play
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
                         s.damage(1); // damages enemy after animation so its then removed
                     }
-                }, 2600);
+                }, 850);
             }
         }
 
@@ -430,6 +447,7 @@ public class Game extends GameCore {
         }
 
         player.update(elapsed);
+        boss.update(elapsed);
         arrow.update(elapsed);
         arrowCollision.update(elapsed);
 
@@ -437,7 +455,8 @@ public class Game extends GameCore {
         handleScreenEdge(player, tmap, elapsed);
         enemyTileCollision( tmap);
         arrowTileCollisionCheck(arrowCollision,tmap);
-        checkTileCollision(player, tmap, tmapBackground);
+        checkTileCollision(player, tmap, tmapBackground,tmapDoor);
+        bossTileCollision(boss,tmap);
 
 
     }
@@ -458,7 +477,7 @@ public class Game extends GameCore {
                 // Reset the game after the pause
                 playerHealth = 3;
                 for (int i = enemies.size(); i < 4; i++) {
-                    enemies.add(new Sprite(enemyKnightRun));
+                    enemies.add(new Sprite(enemyRun));
                 } // adds a new enemy in until there are 4 enemies again
 
                 initialiseGame();
@@ -544,6 +563,9 @@ public class Game extends GameCore {
             sound.start();
 
         }
+        if(keyCode == KeyEvent.VK_X){
+            player.setPosition(8000,960);
+        }
         if (e.getKeyCode() == KeyEvent.VK_2) {
             // Increase volume
             adjustBackgroundMusicVolume(0.1f);
@@ -600,7 +622,7 @@ public class Game extends GameCore {
      * @param tmap The tile map to check
      */
 
-    public void checkTileCollision(Sprite s, TileMap tmap, TileMap tmapbg) {
+    public void checkTileCollision(Sprite s, TileMap tmap, TileMap tmapbg, TileMap tmapDoor) {
         // Empty out our current set of collided tiles
         collidedTiles.clear();
 
@@ -614,6 +636,7 @@ public class Game extends GameCore {
         checkAboveCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
         checkBottomLeftCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
         checkPlayerCollison(s, tmapbg, tmap, spriteX, spriteY, tileWidth, tileHeight);
+        checkPlayerCollison(s, tmapDoor, tmap, spriteX, spriteY, tileWidth, tileHeight);
         checkMiddleLeftCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
         checkMiddleRightCollsion(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
 
@@ -628,7 +651,7 @@ public class Game extends GameCore {
         float tileWidth = tmap.getTileWidth();
         float tileHeight = tmap.getTileHeight();
 
-        ArrowLeftCollision( tmap, spriteX, spriteY, tileWidth, tileHeight);
+        ArrowLeftCollision(tmap, spriteX, spriteY, tileWidth, tileHeight);
         ArrowRightCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
     }
 
@@ -657,6 +680,15 @@ public class Game extends GameCore {
         collidedTiles.add(aL);
     }
 
+    public void bossTileCollision(Sprite s, TileMap tmap){
+        float spriteX = s.getX();
+        float spriteY = s.getY();
+
+        float tileWidth = tmap.getTileWidth();
+        float tileHeight = tmap.getTileHeight();
+        enemyMiddleLeftCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
+        enemyMiddleRightCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
+    }
     public void enemyTileCollision( TileMap tmap) {
         // Empty out our current set of collided tiles
         collidedTiles.clear();
@@ -666,10 +698,10 @@ public class Game extends GameCore {
 
             float tileWidth = tmap.getTileWidth();
             float tileHeight = tmap.getTileHeight();
-
             enemyMiddleLeftCollision(x, tmap, spriteX, spriteY, tileWidth, tileHeight);
             enemyMiddleRightCollision(x, tmap, spriteX, spriteY, tileWidth, tileHeight);
         }
+
     }
 
     private void enemyMiddleLeftCollision(Sprite sprite, TileMap tileMap, float spriteX, float spriteY, float tileWidth, float tileHeight) {
@@ -790,6 +822,10 @@ public class Game extends GameCore {
             tmap.setTileChar('.', 58, 15);
             tmap.setTileChar('.', 58, 14);
             tmap.setTileChar('.', 58, 13);
+
+        }
+        if (pc != null && pc.getCharacter() == 'o') {
+        //code to go to next level here
 
         }
         collidedTiles.add(pc);
