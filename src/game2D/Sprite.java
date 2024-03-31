@@ -29,7 +29,7 @@ public class Sprite {
     private float height;
     private float width;
     private float radius;
-    private int health =1 ;
+    private int health;
 
     // The scale to draw the sprite at where 1 equals normal size
     private double xscale;

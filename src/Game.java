@@ -54,7 +54,9 @@ public class Game extends GameCore {
     private Animation enemyRun;
     private Animation enemyDeath;
     private Animation bossWalk;
+    private Animation bossDead;
     private Animation playerArrow;
+
     private int xo;
 
     private Sprite player = null;
@@ -73,6 +75,7 @@ public class Game extends GameCore {
 
     // Miscellaneous
     private int totalScore;
+    private int level = 1;
     public Sound backgroundMusic;
 
 
@@ -104,13 +107,9 @@ public class Game extends GameCore {
     public void init() {
         initGameWindow(1920, 1080);
         initTileMap("backgroundMap.txt", "map.txt", "doorMap.txt");
-
         initSprites();
-
-        initBackgroundAnimation();
-
+        initBackgroundAnimation("images/background/grassRoad.png","images/background/grasses.png","images/background/trees.png","images/background/jungle_bg.png");
         initBackgroundMusic("sounds/bgmusic.wav");
-
         initialiseGame();
     }
 
@@ -120,11 +119,10 @@ public class Game extends GameCore {
         setVisible(true);
     }
 
-    private void initTileMap(String backgroundMapPath, String mapPath, String doorMapPath) {
-        tmapBackground.loadMap("maps", backgroundMapPath);
-        tmapDoor.loadMap("maps", doorMapPath);
-        tmap.loadMap("maps", mapPath);
-        System.out.println(tmap);
+    private void initTileMap(String backgroundMapPath, String mapLevelOne, String doorMapPath) {
+            tmapBackground.loadMap("maps", backgroundMapPath);
+            tmapDoor.loadMap("maps", doorMapPath);
+            tmap.loadMap("maps", mapLevelOne);
     }
 
     private void initSprites() {
@@ -149,7 +147,8 @@ public class Game extends GameCore {
         arrowCollision.setPosition(-100f, -100f);
 
         //boss
-        bossWalk = loadAnimationFromSheet("images/bossRun.png", 10, 200);
+        bossWalk = loadAnimationFromSheet("images/bossRun.png", 7, 200);
+        bossDead = loadAnimationFromSheet("images/bossDead.png",3,350);
         boss = new Sprite(bossWalk);
     }
 
@@ -159,11 +158,11 @@ public class Game extends GameCore {
         return animation;
     }
 
-    private void initBackgroundAnimation() {
-        Animation bg1 = loadAnimationFromSheet("images/background/grassRoad.png", 1, 100);
-        Animation bg2 = loadAnimationFromSheet("images/background/grasses.png", 1, 100);
-        Animation bg3 = loadAnimationFromSheet("images/background/trees.png", 1, 100);
-        Animation bg4 = loadAnimationFromSheet("images/background/jungle_bg.png", 1, 100);
+    private void initBackgroundAnimation(String bg1Path,String bg2Path,String bg3Path,String bg4Path) {
+        Animation bg1 = loadAnimationFromSheet(bg1Path, 1, 100);
+        Animation bg2 = loadAnimationFromSheet(bg2Path, 1, 100);
+        Animation bg3 = loadAnimationFromSheet(bg3Path, 1, 100);
+        Animation bg4 = loadAnimationFromSheet(bg4Path, 1, 100);
 
         background.add(new Sprite(bg4));
         background.add(new Sprite(bg3));
@@ -236,10 +235,8 @@ public class Game extends GameCore {
         }
         int yo = 0;
 
-        g.setColor(Color.white);
+        g.setColor(Color.darkGray);
         g.fillRect(0, 0, getWidth(), getHeight());
-
-
         // Apply offsets to sprites then draw them
         for (Sprite s : background) {
             for (int i = 1; i < 7; i++) {
@@ -288,11 +285,10 @@ public class Game extends GameCore {
             }
             s.drawTransformed(g);
         }
-        boss.draw(g);
+        boss.drawTransformed(g);
 
         // Show score and status information
         String msg = String.format("Score: "+ totalScore);
-        System.out.println(totalScore);
         g.setColor(Color.RED);
         g.drawString(msg,
 
@@ -369,6 +365,25 @@ public class Game extends GameCore {
                 }, 850);
             }
         }
+        if (playerHealth > 0 && boss.getHealth() <-3){
+            boss.setAnimation(bossDead);
+            boss.setVelocityX(0);
+            boss.setAnimationSpeed(0.5f);
+            if (!boss.scored) { // Check if the score has already been given for this enemy death
+                totalScore += 300;
+                boss.scored = true;
+            }
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                boss.hide();
+                boss.kill();
+                }
+            }, 2000);
+
+        }
+
 
         if (rightKeyPressed && leftKeyPressed && playerHealth > 0) {
             player.setAnimation(playerIdle);
@@ -406,26 +421,10 @@ public class Game extends GameCore {
 
 
         backgroundScrollSpeed(elapsed);
+        checkBoundingCollision(boss);
 
         for (Sprite s : enemies) {
-            //checks for player and enemy collision
-            if (boundingBoxCollision(player, s)) {
-                if (s.getVelocityX() < 0) {
-                    s.setVelocityX(s.getVelocityX() * -1);
-                    player.setX(player.getX() - 63);
-                    playerHealth--;
-                    System.out.println(playerHealth);
-                } else if (s.getVelocityX() > 0) {
-                    s.setVelocityX(s.getVelocityX() * -1);
-                    player.setX(player.getX() + 63);
-                    playerHealth--;
-                } else {
-                    // do nothing
-                    // despite having no code this else allows for a player to walk through enemies that are in death animation
-                    //[todo]Fix this, definitely a better way to deal with the death collision
-                }
-
-            }
+            checkBoundingCollision(s);
             if (boundingBoxCollision(arrowCollision, s)) {
                 s.setVelocityX(0);
                 arrow.hideSprite();
@@ -436,22 +435,45 @@ public class Game extends GameCore {
         // This removes the sprite if it has been marked as inactive ( killed )
         enemies.removeIf(s -> !s.isActive());
 
+
+        if(boundingBoxCollision(arrowCollision, boss)){
+            boss.damage(1);
+            arrow.hideSprite();
+            arrowCollision.hideSprite();
+        }
         if (playerHealth < 1) {
             playerDeathCycle();
+        }
+
+        if(boss.getVelocityX()==0){
+            tmapDoor.setTileChar('o', 146, 15);
         }
 
         player.update(elapsed);
         boss.update(elapsed);
         arrow.update(elapsed);
         arrowCollision.update(elapsed);
+        //endLevel();
 
         // Then check for any collisions that may have occurred
+        handleScreenEdge(player, tmap, elapsed);
         enemyTileCollision(tmap);
         arrowTileCollisionCheck(arrowCollision, tmap);
         checkTileCollision(player, tmap, tmapBackground, tmapDoor);
         bossTileCollision(boss, tmap);
 
 
+    }
+
+    public void handleScreenEdge(Sprite s, TileMap tmap, long elapsed) {
+        // This method just checks if the sprite has gone off the bottom screen.
+        // Ideally you should use tile collision instead of this approach
+
+        float difference = s.getY() + s.getHeight() - tmap.getPixelHeight();
+        if (difference > 0) {
+            // Put the player back on the map according to how far over they were
+            s.setY(tmap.getPixelHeight() - s.getHeight() - (int) (difference));
+        }
     }
 
     public void playerDeathCycle() {
@@ -478,6 +500,23 @@ public class Game extends GameCore {
         }, 2600); // Total duration of the death animation
     }
 
+    public void checkBoundingCollision(Sprite s) {
+        if (boundingBoxCollision(player, s)) {
+            if (s.getVelocityX() < 0) {
+                s.setVelocityX(s.getVelocityX() * -1);
+                player.setX(player.getX() - 63);
+                playerHealth--;
+            } else if (s.getVelocityX() > 0) {
+                s.setVelocityX(s.getVelocityX() * -1);
+                player.setX(player.getX() + 63);
+                playerHealth--;
+            } else {
+                // do nothing
+                // despite having no code this else allows for a player to walk through enemies that are in death animation
+                //[todo]Fix this, definitely a better way to deal with the death collision
+            }
+        }
+    }
 
     public void backgroundScrollSpeed(Long elapsed) {
 
@@ -737,7 +776,7 @@ public class Game extends GameCore {
 
         }
         if (pc != null && pc.getCharacter() == 'o') {
-            //code to go to next level here
+            endLevel();
 
         }
         collidedTiles.add(pc);
@@ -819,12 +858,10 @@ public class Game extends GameCore {
 
             case KeyEvent.VK_2: // Increase volume
                 adjustBackgroundMusicVolume(0.1f);
-                System.out.println("Volume at " + String.format("%.1f", newVolume * 100) + "%");
                 break;
 
             case KeyEvent.VK_1: // lower volume
                 adjustBackgroundMusicVolume(-0.1f);
-                System.out.println("Volume at " + String.format("%.1f", newVolume * 100) + "%");
                 break;
 
             default:
@@ -885,5 +922,13 @@ public class Game extends GameCore {
         arrowCollision.setPosition(player.getX(), player.getY());
         arrow.setPosition(arrowX, arrowY);
 
+    }
+
+    private void endLevel(){
+        background.clear();
+        enemies.clear();
+        initTileMap("mapLevelTwo.txt", "mapLevelTwo.txt", "mapLevelTwo.txt");
+        initSprites();
+        initBackgroundAnimation("images/background/floor.png","images/background/columns.png","images/background/windows.png","images/background/mountains.png");
     }
 }
