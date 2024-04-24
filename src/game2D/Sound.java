@@ -3,14 +3,31 @@ package game2D;
 import java.io.*;
 import javax.sound.sampled.*;
 
+/**
+ * The type Sound.
+ */
 public class Sound extends Thread {
 
+	/**
+	 * The Filename.
+	 */
 	String filename;    // The name of the file to play
+	/**
+	 * The Finished.
+	 */
 	boolean finished;    // A flag showing that the thread has finished
 
 	private Clip clip;
+	/**
+	 * The Volume control.
+	 */
 	public FloatControl volumeControl; // Add this line
 
+	/**
+	 * Instantiates a new Sound.
+	 *
+	 * @param fname the fname
+	 */
 	public Sound(String fname) {
 		filename = fname;
 		finished = false;
@@ -41,6 +58,11 @@ public class Sound extends Thread {
 	}
 
 
+	/**
+	 * Sets volume.
+	 *
+	 * @param volume the volume
+	 */
 	public void setVolume(float volume) {
 		if (volumeControl == null) {
 			return; // Volume control not initialized, possibly because the clip hasn't been opened yet

@@ -22,13 +22,28 @@ import javax.swing.*;
 // Student ID: 2831597
 
 
+/**
+ * The type Game.
+ */
 public class Game extends GameCore {
 
 
-    // Game Constants
+    /**
+     * The constant SCREEN_WIDTH.
+     */
+// Game Constants
     public static final int SCREEN_WIDTH = 1920;
+    /**
+     * The constant SCREEN_HEIGHT.
+     */
     public static final int SCREEN_HEIGHT = 1080;
+    /**
+     * The constant MAX_SCREEN_WIDTH.
+     */
     public static final int MAX_SCREEN_WIDTH = SCREEN_WIDTH * 5;
+    /**
+     * The constant GRAVITY.
+     */
     public static final float GRAVITY = 0.001f;
 
     // Game State Flags
@@ -83,6 +98,9 @@ public class Game extends GameCore {
     // Miscellaneous
     private int totalScore;
     private int level = 1;
+    /**
+     * The Background music.
+     */
     public SoundLoop backgroundMusic;
 
     private SoundLoop walkingSound;
@@ -221,6 +239,9 @@ public class Game extends GameCore {
         }
     }
 
+    /**
+     * Level one spawn.
+     */
     public void levelOneSpawn() {
         boss.setPosition(8000, 640);
         boss.setVelocity(0.1f, 0f);
@@ -264,6 +285,9 @@ public class Game extends GameCore {
 
     }
 
+    /**
+     * Level two spawn.
+     */
     public void levelTwoSpawn() {
 
         princessSprite.setPosition(3900, 960);
@@ -361,14 +385,8 @@ public class Game extends GameCore {
         }
         if (player.getX() > 7000 && !boss.scored()) {
             for (int i = 0; i < bossHealth; i++) {
-                g.drawImage(bossHealthIcon, 1160 - (i * 100), 300, null); // Adjust position and spacing
+                g.drawImage(bossHealthIcon, (int)((boss.getX() - (i * 100))+xo)+350, 600, null); // Adjust position to be above the boss
             }
-            String bossTitleStringBackDrop = String.format("King Slime");
-            g.setColor(Color.BLACK);
-            g.drawString(bossTitleStringBackDrop, 1058, 290);
-            String bossTitleString = String.format("King Slime");
-            g.setColor(Color.RED);
-            g.drawString(bossTitleString, 1060, 290);
         }
 
 
@@ -439,6 +457,14 @@ public class Game extends GameCore {
         }
     }
 
+    /**
+     * Draw collided tiles.
+     *
+     * @param g       the g
+     * @param map     the map
+     * @param xOffset the x offset
+     * @param yOffset the y offset
+     */
     public void drawCollidedTiles(Graphics2D g, TileMap map, int xOffset, int yOffset) {
         if (!collidedTiles.isEmpty()) {
             int tileWidth = map.getTileWidth();
@@ -618,6 +644,13 @@ public class Game extends GameCore {
 
     }
 
+    /**
+     * Handle screen edge.
+     *
+     * @param s       the s
+     * @param tmap    the tmap
+     * @param elapsed the elapsed
+     */
     public void handleScreenEdge(Sprite s, TileMap tmap, long elapsed) {
         // This method just checks if the sprite has gone off the bottom screen.
         // Ideally you should use tile collision instead of this approach
@@ -629,6 +662,9 @@ public class Game extends GameCore {
         }
     }
 
+    /**
+     * Player death cycle.
+     */
     public void playerDeathCycle() {
         // Play the death animation for the player sprite
         player.setAnimation(playerDeath);
@@ -653,6 +689,11 @@ public class Game extends GameCore {
         }, 2600); // Total duration of the death animation
     }
 
+    /**
+     * Check bounding collision.
+     *
+     * @param s the s
+     */
     public void checkBoundingCollision(Sprite s) {
         if (boundingBoxCollision(player, s)) {
             Sound playerHurtSound = new Sound("sounds/playerHurt.wav");
@@ -671,6 +712,11 @@ public class Game extends GameCore {
         }
     }
 
+    /**
+     * Background scroll speed.
+     *
+     * @param elapsed the elapsed
+     */
     public void backgroundScrollSpeed(Long elapsed) {
 
         for (int i = 0; i < background.size(); i++) {
@@ -709,6 +755,8 @@ public class Game extends GameCore {
      * Use the sample code in the lecture notes to properly detect
      * a bounding box collision between sprites s1 and s2.
      *
+     * @param s1 the s 1
+     * @param s2 the s 2
      * @return true if a collision may have occurred, false if it has not.
      */
     public boolean boundingBoxCollision(Sprite s1, Sprite s2) {
@@ -723,10 +771,11 @@ public class Game extends GameCore {
      * Check and handles collisions with a tile map for the
      * given sprite 's'. Initial functionality is limited...
      *
-     * @param s    The Sprite to check collisions for
-     * @param tmap The tile map to check
+     * @param s        The Sprite to check collisions for
+     * @param tmap     The tile map to check
+     * @param tmapbg   the tmapbg
+     * @param tmapDoor the tmap door
      */
-
     public void checkTileCollision(Sprite s, TileMap tmap, TileMap tmapbg, TileMap tmapDoor) {
         // Empty out our current set of collided tiles
         collidedTiles.clear();
@@ -748,6 +797,12 @@ public class Game extends GameCore {
 
     }
 
+    /**
+     * Arrow tile collision check.
+     *
+     * @param s    the s
+     * @param tmap the tmap
+     */
     public void arrowTileCollisionCheck(Sprite s, TileMap tmap) {
         collidedTiles.clear();
 
@@ -787,6 +842,12 @@ public class Game extends GameCore {
         collidedTiles.add(aL);
     }
 
+    /**
+     * Boss tile collision.
+     *
+     * @param s    the s
+     * @param tmap the tmap
+     */
     public void bossTileCollision(Sprite s, TileMap tmap) {
         float spriteX = s.getX();
         float spriteY = s.getY();
@@ -797,6 +858,11 @@ public class Game extends GameCore {
         enemyMiddleRightCollision(s, tmap, spriteX, spriteY, tileWidth, tileHeight);
     }
 
+    /**
+     * Enemy tile collision.
+     *
+     * @param tmap the tmap
+     */
     public void enemyTileCollision(TileMap tmap) {
         // Empty out our current set of collided tiles
         collidedTiles.clear();
@@ -1011,12 +1077,9 @@ public class Game extends GameCore {
                     break;
 
                 case KeyEvent.VK_X:
-                    if (level == 1) {
+                    if (level == 1)
                         player.setPosition(7800, 960);
-                    } else {
-                        System.out.println("x : " + player.getX());
-                        System.out.println("y : " + player.getY());
-                    }
+
                     break;
 
                 case KeyEvent.VK_2: // Increase volume

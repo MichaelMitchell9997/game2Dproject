@@ -7,12 +7,14 @@ import java.util.Iterator;
 
 /**
  * This class provides the functionality for a moving animated image or Sprite.
- * 
- * @author David Cairns
  *
+ * @author David Cairns
  */
 public class Sprite {
 
+    /**
+     * The Scored.
+     */
     public boolean scored;
     // The current Animation to use for this sprite
     private Animation anim;
@@ -54,7 +56,7 @@ public class Sprite {
     /**
      * Creates a new Sprite object with the specified Animation.
      *
-     * @param a The animation to use for the sprite.
+     * @param anim the anim
      */
     public Sprite(Animation anim) {
         this.anim = anim;
@@ -136,7 +138,7 @@ public class Sprite {
      * Updates this Sprite's Animation and its position based
      * on the elapsedTime.
      *
-     * @param The time that has elapsed since the last call to update
+     * @param elapsedTime the elapsed time
      */
     public void update(long elapsedTime) {
         if (!render) return;
@@ -153,6 +155,8 @@ public class Sprite {
 
     /**
      * Gets this Sprite's current x position.
+     *
+     * @return the x
      */
     public float getX() {
         return x;
@@ -160,6 +164,8 @@ public class Sprite {
 
     /**
      * Gets this Sprite's current y position.
+     *
+     * @return the y
      */
     public float getY() {
         return y;
@@ -167,6 +173,8 @@ public class Sprite {
 
     /**
      * Sets this Sprite's current x position.
+     *
+     * @param x the x
      */
     public void setX(float x) {
         this.x = x;
@@ -174,6 +182,8 @@ public class Sprite {
 
     /**
      * Sets this Sprite's current y position.
+     *
+     * @param y the y
      */
     public void setY(float y) {
         this.y = y;
@@ -181,16 +191,29 @@ public class Sprite {
 
     /**
      * Sets this Sprite's new x and y position.
+     *
+     * @param x the x
+     * @param y the y
      */
     public void setPosition(float x, float y) {
         setX(x);
         setY(y);
     }
 
+    /**
+     * Shift x.
+     *
+     * @param shift the shift
+     */
     public void shiftX(float shift) {
         this.x += shift;
     }
 
+    /**
+     * Shift y.
+     *
+     * @param shift the shift
+     */
     public void shiftY(float shift) {
         this.y += shift;
     }
@@ -198,6 +221,8 @@ public class Sprite {
     /**
      * Gets this Sprite's width, based on the size of the
      * current image.
+     *
+     * @return the width
      */
     public int getWidth() {
         return (int) (anim.getImage().getWidth(null) * Math.abs(xscale));
@@ -206,6 +231,8 @@ public class Sprite {
     /**
      * Gets this Sprite's height, based on the size of the
      * current image.
+     *
+     * @return the height
      */
     public int getHeight() {
         return (int) (anim.getImage().getHeight(null) * Math.abs(yscale));
@@ -213,6 +240,8 @@ public class Sprite {
 
     /**
      * Gets the sprites radius in pixels
+     *
+     * @return the radius
      */
     public float getRadius() {
         return radius;
@@ -221,6 +250,8 @@ public class Sprite {
     /**
      * Gets the horizontal velocity of this Sprite in pixels
      * per millisecond.
+     *
+     * @return the velocity x
      */
     public float getVelocityX() {
         return dx;
@@ -229,6 +260,8 @@ public class Sprite {
     /**
      * Gets the vertical velocity of this Sprite in pixels
      * per millisecond.
+     *
+     * @return the velocity y
      */
     public float getVelocityY() {
         return dy;
@@ -238,6 +271,8 @@ public class Sprite {
     /**
      * Sets the horizontal velocity of this Sprite in pixels
      * per millisecond.
+     *
+     * @param dx the dx
      */
     public void setVelocityX(float dx) {
         this.dx = dx;
@@ -246,6 +281,8 @@ public class Sprite {
     /**
      * Sets the vertical velocity of this Sprite in pixels
      * per millisecond.
+     *
+     * @param dy the dy
      */
     public void setVelocityY(float dy) {
         this.dy = dy;
@@ -254,6 +291,9 @@ public class Sprite {
     /**
      * Sets the horizontal and vertical velocity of this Sprite in pixels
      * per millisecond.
+     *
+     * @param dx the dx
+     * @param dy the dy
      */
     public void setVelocity(float dx, float dy) {
         this.dx = dx;
@@ -271,6 +311,9 @@ public class Sprite {
      * the top left of the sprite irrespective of the scaling).
      * Note that scaling and rotation are only applied when
      * using the drawTransformed method.
+     *
+     * @param scx the scx
+     * @param scy the scy
      */
     public void setScale(float scx, float scy) {
         xscale = scx;
@@ -283,6 +326,8 @@ public class Sprite {
      * is 0.5 it will be drawn at half size. Note that
      * scaling and rotation are only applied when
      * using the drawTransformed method.
+     *
+     * @param s the s
      */
     public void setScale(float s) {
         xscale = s;
@@ -293,6 +338,8 @@ public class Sprite {
     /**
      * Get the current value of the x scaling attribute.
      * See 'setScale' for more information.
+     *
+     * @return the scale x
      */
     public double getScaleX() {
         return xscale;
@@ -301,6 +348,8 @@ public class Sprite {
     /**
      * Get the current value of the y scaling attribute.
      * See 'setScale' for more information.
+     *
+     * @return the scale y
      */
     public double getScaleY() {
         return yscale;
@@ -310,6 +359,8 @@ public class Sprite {
      * Set the rotation angle for the sprite in degrees.
      * Note that scaling and rotation are only applied when
      * using the drawTransformed method.
+     *
+     * @param r the r
      */
     public void setRotation(double r) {
         rotation = Math.toRadians(r);
@@ -318,6 +369,8 @@ public class Sprite {
     /**
      * Get the current value of the rotation attribute.
      * in degrees. See 'setRotation' for more information.
+     *
+     * @return the rotation
      */
     public double getRotation() {
         return Math.toDegrees(rotation);
@@ -333,6 +386,8 @@ public class Sprite {
 
     /**
      * Gets this Sprite's current image.
+     *
+     * @return the image
      */
     public Image getImage() {
         return anim.getImage();
@@ -342,6 +397,8 @@ public class Sprite {
      * Draws the sprite with the graphics object 'g' at
      * the current x and y co-ordinates. Scaling and rotation
      * transforms are NOT applied.
+     *
+     * @param g the g
      */
     public void draw(Graphics2D g) {
         if (!render) return;
@@ -352,6 +409,8 @@ public class Sprite {
     /**
      * Draws the bounding box of this sprite using the graphics object 'g' and
      * the currently selected foreground colour.
+     *
+     * @param g the g
      */
     public void drawBoundingBox(Graphics2D g) {
         if (!render) return;
@@ -363,6 +422,8 @@ public class Sprite {
     /**
      * Draws the bounding circle of this sprite using the graphics object 'g' and
      * the currently selected foreground colour.
+     *
+     * @param g the g
      */
     public void drawBoundingCircle(Graphics2D g) {
         if (!render) return;
@@ -415,6 +476,8 @@ public class Sprite {
 
     /**
      * Check the visibility status of the sprite.
+     *
+     * @return the boolean
      */
     public boolean isVisible() {
         return render;
@@ -424,22 +487,45 @@ public class Sprite {
      * Set an x & y offset to use when drawing the sprite.
      * Note this does not affect its actual position, just
      * moves the drawn position.
+     *
+     * @param x the x
+     * @param y the y
      */
     public void setOffsets(int x, int y) {
         xoff = x;
         yoff = y;
     }
 
+    /**
+     * Is active boolean.
+     *
+     * @return the boolean
+     */
     public boolean isActive() {
         return this.isActive;
     }
+
+    /**
+     * Kill.
+     */
     public void kill() {
         isActive = false; // Mark the sprite as inactive
     }
 
+    /**
+     * Get health int.
+     *
+     * @return the int
+     */
     public int getHealth(){
         return health;
     }
+
+    /**
+     * Damage.
+     *
+     * @param amount the amount
+     */
     public void damage(int amount) {
         health -= amount;
         if (health <= 0) {
@@ -447,11 +533,19 @@ public class Sprite {
         }
     }
 
+    /**
+     * Hide sprite.
+     */
     public void hideSprite(){
         setVelocityX(0);
         setPosition(-100,-100);
     }
 
+    /**
+     * Scored boolean.
+     *
+     * @return the boolean
+     */
     public Boolean scored(){
         return this.scored;
     }

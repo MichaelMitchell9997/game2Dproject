@@ -2,11 +2,26 @@ package game2D;
 
 import java.io.*;
 
+/**
+ * The type Echo filter stream.
+ */
 public class EchoFilterStream extends FilterInputStream {
 
+    /**
+     * Instantiates a new Echo filter stream.
+     *
+     * @param in the in
+     */
     EchoFilterStream(InputStream in) { super(in); }
 
-    // Get a value from the array 'buffer' at the given 'position'
+    /**
+     * Gets sample.
+     *
+     * @param buffer   the buffer
+     * @param position the position
+     * @return the sample
+     */
+// Get a value from the array 'buffer' at the given 'position'
     // and convert it into short big-endian format
     public short getSample(byte[] buffer, int position)
     {
@@ -14,7 +29,14 @@ public class EchoFilterStream extends FilterInputStream {
                 (buffer[position] & 0xff));
     }
 
-    // Set a short value 'sample' in the array 'buffer' at the
+    /**
+     * Sets sample.
+     *
+     * @param buffer   the buffer
+     * @param position the position
+     * @param sample   the sample
+     */
+// Set a short value 'sample' in the array 'buffer' at the
     // given 'position' in little-endian format
     public void setSample(byte[] buffer, int position, short sample)
     {

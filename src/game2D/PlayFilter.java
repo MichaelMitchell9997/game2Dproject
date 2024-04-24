@@ -3,9 +3,21 @@ package game2D;
 import java.io.*;
 import javax.sound.sampled.*;
 
+/**
+ * The type Play filter.
+ */
 public class PlayFilter extends Thread{
 
+    /**
+     * The Filename.
+     */
     String filename;
+
+    /**
+     * Instantiates a new Play filter.
+     *
+     * @param fname the fname
+     */
     public PlayFilter(String fname) {
         filename = fname;
 
