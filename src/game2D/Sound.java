@@ -40,6 +40,7 @@ public class Sound extends Thread {
 		finished = true;
 	}
 
+
 	public void setVolume(float volume) {
 		if (volumeControl == null) {
 			return; // Volume control not initialized, possibly because the clip hasn't been opened yet
@@ -50,4 +51,6 @@ public class Sound extends Thread {
 		float dB = (float) (Math.log(volume == 0.0 ? 0.0001 : volume) / Math.log(10.0) * 20.0);
 		volumeControl.setValue(dB);
 	}
+
+
 }

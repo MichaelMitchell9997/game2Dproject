@@ -437,7 +437,6 @@ public class Sprite {
         isActive = false; // Mark the sprite as inactive
     }
 
-
     public int getHealth(){
         return health;
     }

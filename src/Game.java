@@ -11,15 +11,15 @@ import java.util.TimerTask;
 
 import game2D.*;
 
+import javax.swing.*;
+
 // Game demonstrates how we can override the GameCore class
 // to create our own 'game'. We usually need to implement at
 // least 'draw' and 'update' (not including any local event handling)
 // to begin the process. You should also add code to the 'init'
 // method that will initialise event handlers etc.
 
-// Student ID: ???????
-
-
+// Student ID: 2831597
 
 
 public class Game extends GameCore {
@@ -37,7 +37,7 @@ public class Game extends GameCore {
     private boolean lastKeyRight = false;
     private boolean lastKeyLeft = false;
     private boolean jump = false;
-    private boolean debug = true;
+    private boolean debug = false;
     private boolean onGround = true;
     private boolean tileAbovePlayer = false;
     private boolean playerMoving = false;
@@ -45,6 +45,7 @@ public class Game extends GameCore {
 
     // Player Attributes
     private int playerHealth = 3;
+    private int bossHealth = 4;
     private float newVolume = 1;
 
     // Game Resources
@@ -56,6 +57,9 @@ public class Game extends GameCore {
     private Animation bossWalk;
     private Animation bossDead;
     private Animation playerArrow;
+    private Animation coinAnim;
+
+    private Animation princess;
 
     private int xo;
 
@@ -64,8 +68,11 @@ public class Game extends GameCore {
     private Sprite arrowCollision;
     private Sprite boss;
 
+    private Sprite princessSprite;
+
     private ArrayList<Sprite> background = new ArrayList<>();
     private ArrayList<Sprite> enemies = new ArrayList<>();
+    private ArrayList<Sprite> coinSprite = new ArrayList<>();
     private ArrayList<Tile> collidedTiles = new ArrayList<>();
 
     // Tile Maps
@@ -76,7 +83,14 @@ public class Game extends GameCore {
     // Miscellaneous
     private int totalScore;
     private int level = 1;
-    public Sound backgroundMusic;
+    public SoundLoop backgroundMusic;
+
+    private SoundLoop walkingSound;
+    private boolean isWalkingSoundPlaying = false;
+
+    private boolean gameOverPlayed = false;
+
+    private Image healthIcon, bossHealthIcon, WinScreen;
 
 
     /**
@@ -108,7 +122,7 @@ public class Game extends GameCore {
         initGameWindow(1920, 1080);
         initTileMap("backgroundMap.txt", "map.txt", "doorMap.txt");
         initSprites();
-        initBackgroundAnimation("images/background/grassRoad.png","images/background/grasses.png","images/background/trees.png","images/background/jungle_bg.png");
+        initBackgroundAnimation("images/background/grassRoad.png", "images/background/grasses.png", "images/background/trees.png", "images/background/jungle_bg.png");
         initBackgroundMusic("sounds/bgmusic.wav");
         initialiseGame();
     }
@@ -120,9 +134,9 @@ public class Game extends GameCore {
     }
 
     private void initTileMap(String backgroundMapPath, String mapLevelOne, String doorMapPath) {
-            tmapBackground.loadMap("maps", backgroundMapPath);
-            tmapDoor.loadMap("maps", doorMapPath);
-            tmap.loadMap("maps", mapLevelOne);
+        tmapBackground.loadMap("maps", backgroundMapPath);
+        tmapDoor.loadMap("maps", doorMapPath);
+        tmap.loadMap("maps", mapLevelOne);
     }
 
     private void initSprites() {
@@ -132,6 +146,14 @@ public class Game extends GameCore {
         playerArrow = loadAnimationFromSheet("images/arrow.png", 3, 250);
         playerDeath = loadAnimationFromSheet("images/Dead.png", 6, 450);
         player = new Sprite(playerIdle);
+
+        princess = loadAnimationFromSheet("images/princess.png", 4, 250);
+        princessSprite = new Sprite(princess);
+
+        coinAnim = loadAnimationFromSheet("images/coin.png", 9, 250);
+        for (int i = 0; i < 4; i++) {
+            coinSprite.add(new Sprite(coinAnim));
+        }
 
         // Enemy animations
         enemyRun = loadAnimationFromSheet("images/slimeRun.png", 13, 150);
@@ -148,8 +170,14 @@ public class Game extends GameCore {
 
         //boss
         bossWalk = loadAnimationFromSheet("images/bossRun.png", 7, 200);
-        bossDead = loadAnimationFromSheet("images/bossDead.png",3,350);
+        bossDead = loadAnimationFromSheet("images/bossDead.png", 3, 350);
         boss = new Sprite(bossWalk);
+
+        healthIcon = new ImageIcon("images/playerHealth.png").getImage();
+
+        bossHealthIcon = new ImageIcon("images/bossHealth.png").getImage();
+
+        WinScreen = new ImageIcon("images/background/winBackground.png").getImage();
     }
 
     private Animation loadAnimationFromSheet(String path, int frames, int duration) {
@@ -158,7 +186,7 @@ public class Game extends GameCore {
         return animation;
     }
 
-    private void initBackgroundAnimation(String bg1Path,String bg2Path,String bg3Path,String bg4Path) {
+    private void initBackgroundAnimation(String bg1Path, String bg2Path, String bg3Path, String bg4Path) {
         Animation bg1 = loadAnimationFromSheet(bg1Path, 1, 100);
         Animation bg2 = loadAnimationFromSheet(bg2Path, 1, 100);
         Animation bg3 = loadAnimationFromSheet(bg3Path, 1, 100);
@@ -171,18 +199,8 @@ public class Game extends GameCore {
     }
 
     private void initBackgroundMusic(String musicPath) {
-        backgroundMusic = new Sound(musicPath);
-        new Thread(() -> {
-            backgroundMusic.start(); // Start playing the sound
-            // Loop to keep the sound playing
-            while (true) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
+        backgroundMusic = new SoundLoop(musicPath);
+        backgroundMusic.start();
     }
 
     /**
@@ -195,11 +213,22 @@ public class Game extends GameCore {
         player.setVelocity(0, 0);
         player.show();
 
+        if (level == 1) {
+            levelOneSpawn();
+        }
+        if (level == 2) {
+            levelTwoSpawn();
+        }
+    }
+
+    public void levelOneSpawn() {
         boss.setPosition(8000, 640);
         boss.setVelocity(0.1f, 0f);
         boss.show();
 
+        princessSprite.hide();
 
+        //enemy placement
         for (int i = 0; i < enemies.size(); i++) {
             Sprite s = enemies.get(i);
             if (i == 0) {
@@ -216,6 +245,65 @@ public class Game extends GameCore {
             s.setVelocityX(0.05f);
         }
 
+        //coin placement
+        for (int i = 0; i < coinSprite.size(); i++) {
+            Sprite s = coinSprite.get(i);
+            if (i == 0) {
+                s.setPosition(6000, 640);
+            } else if (i == 1) {
+                s.setPosition(600, 832);
+            } else if (i == 2) {
+                s.setPosition(900, 448);
+            } else if (i == 3) {
+                s.setPosition(2100, 768);
+            }
+            s.setVelocity(0, 0);
+            s.show();
+            s.setVelocityX(0);
+        }
+
+    }
+
+    public void levelTwoSpawn() {
+
+        princessSprite.setPosition(3900, 960);
+        princessSprite.setVelocity(0, 0);
+        princessSprite.show();
+
+        for (int i = 0; i < coinSprite.size(); i++) {
+            Sprite s = coinSprite.get(i);
+            if (i == 0) {
+                s.setPosition(500, 960);
+            } else if (i == 1) {
+                s.setPosition(600, 960);
+            } else if (i == 2) {
+                s.setPosition(400, 960);
+            } else if (i == 3) {
+                s.setPosition(300, 960);
+            }
+            s.setVelocity(0, 0);
+            s.show();
+            s.setVelocityX(0);
+        }
+
+        for (int i = 0; i < enemies.size(); i++) {
+            Sprite s = enemies.get(i);
+            if (i == 0) {
+                s.setPosition(1300, 960);
+            } else if (i == 1) {
+                s.setPosition(600, 960);
+            } else if (i == 2) {
+                s.setPosition(1810, 960);
+            } else if (i == 3) {
+                s.setPosition(2500, 960);
+            }
+            s.setVelocity(0, 0);
+            s.show();
+            s.setVelocityX(0.05f);
+        }
+
+        player.setPosition(200, 800); // fixes the player glitching through the floor and going offscreen
+        player.show();
     }
 
     /**
@@ -266,6 +354,23 @@ public class Game extends GameCore {
 
         player.setOffsets(xo, yo);
         boss.setOffsets(xo, yo);
+        princessSprite.setOffsets(xo, yo);
+
+        for (int i = 0; i < playerHealth; i++) {
+            g.drawImage(healthIcon, 1800 - (i * 50), 50, null); // Adjust position and spacing
+        }
+        if (player.getX() > 7000 && !boss.scored()) {
+            for (int i = 0; i < bossHealth; i++) {
+                g.drawImage(bossHealthIcon, 1160 - (i * 100), 300, null); // Adjust position and spacing
+            }
+            String bossTitleStringBackDrop = String.format("King Slime");
+            g.setColor(Color.BLACK);
+            g.drawString(bossTitleStringBackDrop, 1058, 290);
+            String bossTitleString = String.format("King Slime");
+            g.setColor(Color.RED);
+            g.drawString(bossTitleString, 1060, 290);
+        }
+
 
         if (arrow.getVelocityX() < 0) {
             arrow.setScale(-1, 1);
@@ -274,8 +379,18 @@ public class Game extends GameCore {
         }
         arrow.drawTransformed(g);
 
+        for (Sprite s : coinSprite) {
+            s.setOffsets(xo, yo);
+            s.setScale(2, 2);
+            s.drawTransformed(g);
+            s.setAnimationSpeed(1);
+        }
+
 
         player.drawTransformed(g);
+
+        princessSprite.setScale(-1, 1);
+        princessSprite.drawTransformed(g);
         for (Sprite s : enemies) {
             s.setOffsets(xo, yo);
             if (s.getVelocityX() < 0) {
@@ -288,13 +403,13 @@ public class Game extends GameCore {
         boss.drawTransformed(g);
 
         // Show score and status information
-        String msg = String.format("Score: "+ totalScore);
+        String msg = String.format("Score: " + totalScore);
         g.setColor(Color.RED);
         g.drawString(msg,
 
                 getWidth() - 1910, 50);
 
-        String musicVolume = String.format("Music Volume: %.0f %%", newVolume *100 );
+        String musicVolume = String.format("Music Volume: %.0f %%", newVolume * 100);
         Font largeFont = new Font("Serif", Font.BOLD, 24);
         g.setColor(Color.RED);
         g.setFont(largeFont);
@@ -306,18 +421,21 @@ public class Game extends GameCore {
             tmap.drawBorder(g, xo, yo, Color.black);
 
             g.setColor(Color.RED);
+            boss.drawBoundingBox(g);
             player.drawBoundingBox(g);
             arrow.drawBoundingBox(g);
-            boss.drawBoundingBox(g);
             arrowCollision.drawBoundingBox(g);
             for (Sprite s : enemies) {
                 s.drawBoundingBox(g);
             }
 
             g.drawString(String.format("Player: %.0f,%.0f", player.getX(), player.getY()),
-                    getWidth() - 200, 70);
+                    getWidth() - 1910, 130);
 
             drawCollidedTiles(g, tmap, xo, yo);
+        }
+        if (gameOverPlayed) {
+            g.drawImage(WinScreen, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, null);
         }
     }
 
@@ -342,8 +460,11 @@ public class Game extends GameCore {
 
         // Make adjustments to the speed of the sprite due to gravity
         player.setVelocityY(player.getVelocityY() + (GRAVITY * elapsed));
-
         player.setAnimationSpeed(1.0f);
+        if (player.getX() < 0) {
+            player.setX(200);
+        }
+
 
         for (Sprite s : enemies) {
             if (playerHealth > 0 && s.getHealth() > 1) { //if player isn't dead and enemy isn't dead sets the enemy animation to run
@@ -351,9 +472,12 @@ public class Game extends GameCore {
             }
             if (playerHealth > 0 && s.getVelocityX() == 0) { //checks if player is alive and if sprite isn't moving (sprite not moving means its dead)
                 s.setAnimation(enemyDeath); //sets enemy animation to the death
+
                 if (!s.scored) { // Check if the score has already been given for this enemy death
                     totalScore += 10;
                     s.scored = true;
+                    Sound slimeDeathSound = new Sound("sounds/slimeDeath.wav");
+                    slimeDeathSound.start();
                 }
                 Timer timer = new Timer();
                 timer.schedule(new TimerTask() {
@@ -365,20 +489,22 @@ public class Game extends GameCore {
                 }, 850);
             }
         }
-        if (playerHealth > 0 && boss.getHealth() <-3){
+        if (playerHealth > 0 && boss.getHealth() < -3) {
             boss.setAnimation(bossDead);
             boss.setVelocityX(0);
             boss.setAnimationSpeed(0.5f);
             if (!boss.scored) { // Check if the score has already been given for this enemy death
                 totalScore += 300;
                 boss.scored = true;
+                PlayFilter bossDeathSound = new PlayFilter("sounds/slimeDeath.wav");
+                bossDeathSound.start();
             }
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                boss.hide();
-                boss.kill();
+                    boss.hide();
+                    boss.kill();
                 }
             }, 2000);
 
@@ -402,6 +528,18 @@ public class Game extends GameCore {
         } else {
             player.setAnimation(playerIdle);
             player.setVelocityX(0.0f);
+        }
+        if ((leftKeyPressed || rightKeyPressed) && !isWalkingSoundPlaying) {
+            if (walkingSound == null || !walkingSound.isAlive()) {
+                walkingSound = new SoundLoop("sounds/walkGrass.wav");
+                walkingSound.start();
+            }
+            isWalkingSoundPlaying = true;
+        } else if (!(leftKeyPressed || rightKeyPressed) && isWalkingSoundPlaying) {
+            if (walkingSound != null) {
+                walkingSound.stopSound();
+                isWalkingSoundPlaying = false;
+            }
         }
 
         if (jump) {
@@ -432,12 +570,26 @@ public class Game extends GameCore {
             }
             s.update(elapsed);
         }
+        for (Sprite s : coinSprite) {
+            checkBoundingCollision(s);
+            if (boundingBoxCollision(s, player)) {
+                s.kill();
+                totalScore += 100;
+                Sound sound = new Sound("sounds/coinPickUp.wav");
+                sound.start();
+            }
+            s.update(elapsed);
+        }
+        coinSprite.removeIf(s -> !s.isActive());
         // This removes the sprite if it has been marked as inactive ( killed )
         enemies.removeIf(s -> !s.isActive());
 
-
-        if(boundingBoxCollision(arrowCollision, boss)){
+        if (boundingBoxCollision(player, princessSprite)) {
+            endGameWin();
+        }
+        if (boundingBoxCollision(arrowCollision, boss)) {
             boss.damage(1);
+            bossHealth -= 1;
             arrow.hideSprite();
             arrowCollision.hideSprite();
         }
@@ -445,7 +597,7 @@ public class Game extends GameCore {
             playerDeathCycle();
         }
 
-        if(boss.getVelocityX()==0){
+        if (boss.getVelocityX() == 0) {
             tmapDoor.setTileChar('o', 146, 15);
         }
 
@@ -453,14 +605,15 @@ public class Game extends GameCore {
         boss.update(elapsed);
         arrow.update(elapsed);
         arrowCollision.update(elapsed);
+        princessSprite.update(elapsed);
         //endLevel();
 
         // Then check for any collisions that may have occurred
         handleScreenEdge(player, tmap, elapsed);
         enemyTileCollision(tmap);
+        bossTileCollision(boss, tmap);
         arrowTileCollisionCheck(arrowCollision, tmap);
         checkTileCollision(player, tmap, tmapBackground, tmapDoor);
-        bossTileCollision(boss, tmap);
 
 
     }
@@ -502,18 +655,18 @@ public class Game extends GameCore {
 
     public void checkBoundingCollision(Sprite s) {
         if (boundingBoxCollision(player, s)) {
+            Sound playerHurtSound = new Sound("sounds/playerHurt.wav");
             if (s.getVelocityX() < 0) {
                 s.setVelocityX(s.getVelocityX() * -1);
                 player.setX(player.getX() - 63);
                 playerHealth--;
+                playerHurtSound.start();
+
             } else if (s.getVelocityX() > 0) {
                 s.setVelocityX(s.getVelocityX() * -1);
                 player.setX(player.getX() + 63);
                 playerHealth--;
-            } else {
-                // do nothing
-                // despite having no code this else allows for a player to walk through enemies that are in death animation
-                //[todo]Fix this, definitely a better way to deal with the death collision
+                playerHurtSound.start();
             }
         }
     }
@@ -764,18 +917,19 @@ public class Game extends GameCore {
         int ytile = (int) (spriteY / tileHeight);
         Tile pc = tileMap.getTile(xtile, ytile);
 
-        if (pc != null && pc.getCharacter() == '$') {
-            Sound sound = new Sound("sounds/activeWayPoint.wav");
+        if (pc != null && pc.getCharacter() == '$' && level == 1) {
+            PlayFilter sound = new PlayFilter("sounds/activeWayPoint.wav");
             sound.start();
             tileMap.setTileChar('£', xtile, ytile);
 
-            //Location of the end of level door
+            //Location of the door halfway into the level
             tmap.setTileChar('.', 58, 15);
             tmap.setTileChar('.', 58, 14);
             tmap.setTileChar('.', 58, 13);
 
         }
-        if (pc != null && pc.getCharacter() == 'o') {
+        if (pc != null && pc.getCharacter() == 'o' && level == 1) {
+            level = 2;
             endLevel();
 
         }
@@ -818,62 +972,77 @@ public class Game extends GameCore {
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
 
-        switch (keyCode) {
-            case KeyEvent.VK_ESCAPE:
-                System.exit(0);
-                break;
+        if(e.getKeyCode() == KeyEvent.VK_ESCAPE){
+            System.exit(0);
+        }
+        if (!gameOverPlayed) {
+            switch (keyCode) {
+                case KeyEvent.VK_ESCAPE:
+                    System.exit(0);
+                    break;
 
-            case KeyEvent.VK_RIGHT:
-            case KeyEvent.VK_D:
-                rightKeyPressed = true;
-                break;
+                case KeyEvent.VK_RIGHT:
+                case KeyEvent.VK_D:
+                    rightKeyPressed = true;
+                    break;
 
-            case KeyEvent.VK_LEFT:
-            case KeyEvent.VK_A:
-                leftKeyPressed = true;
-                break;
+                case KeyEvent.VK_LEFT:
+                case KeyEvent.VK_A:
+                    leftKeyPressed = true;
+                    break;
 
-            case KeyEvent.VK_UP:
-            case KeyEvent.VK_W:
-                jump = true;
-                break;
+                case KeyEvent.VK_UP:
+                case KeyEvent.VK_W:
+                    jump = true;
+                    break;
 
-            case KeyEvent.VK_EQUALS:
-                debug = !debug;
-                break;
+                case KeyEvent.VK_EQUALS:
+                    debug = !debug;
+                    break;
 
-            case KeyEvent.VK_R: // Resets the game in case the user gets stuck
-                initialiseGame();
-                break;
+                case KeyEvent.VK_R: // Resets the game in case the user gets stuck
+                    initialiseGame();
+                    break;
 
-            case KeyEvent.VK_SPACE:
-                playerAttack();
-                Sound sound = new Sound("sounds/ArrowFly.wav");
-                sound.start();
-                break;
+                case KeyEvent.VK_SPACE:
+                    playerAttack();
+                    Sound sound = new Sound("sounds/ArrowFly.wav");
+                    sound.start();
+                    break;
 
-            case KeyEvent.VK_X:
-                player.setPosition(8000, 960);
-                break;
+                case KeyEvent.VK_X:
+                    if (level == 1) {
+                        player.setPosition(7800, 960);
+                    } else {
+                        System.out.println("x : " + player.getX());
+                        System.out.println("y : " + player.getY());
+                    }
+                    break;
 
-            case KeyEvent.VK_2: // Increase volume
-                adjustBackgroundMusicVolume(0.1f);
-                break;
+                case KeyEvent.VK_2: // Increase volume
+                    adjustBackgroundMusicVolume(0.1f);
+                    break;
 
-            case KeyEvent.VK_1: // lower volume
-                adjustBackgroundMusicVolume(-0.1f);
-                break;
+                case KeyEvent.VK_1: // lower volume
+                    adjustBackgroundMusicVolume(-0.1f);
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
+            }
         }
 
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (player.getX() < ((float) SCREEN_WIDTH / 2)) {
-                    player.setX(e.getX());
-                    player.setY(e.getY());
+                if (debug) {
+                    if (player.getX() < ((float) SCREEN_WIDTH / 2)) {
+                        player.setX(e.getX());
+                        player.setY(e.getY());
+                    } else {
+                        player.setX(e.getX() - xo);
+                        player.setY(e.getY());
+                    }
                 }
             }
         });
@@ -924,11 +1093,31 @@ public class Game extends GameCore {
 
     }
 
-    private void endLevel(){
+    private void endLevel() {
+        level = 2;
+        cleanUpGame();
+        initTileMap("mapLevelTwo.txt", "mapLevelTwo.txt", "mapLevelTwo.txt");
+        initBackgroundMusic("sounds/bgMusicLevel2.wav");
+        initBackgroundAnimation("images/background/floor.png", "images/background/columns.png", "images/background/windows.png", "images/background/mountains.png");
+        initSprites();
+        initialiseGame();
+    }
+
+    private void endGameWin() {
+        if (!gameOverPlayed) {
+            cleanUpGame();
+            Sound winSound = new Sound("sounds/gameWin.wav");
+            winSound.start();
+            gameOverPlayed = true;
+        }
+
+
+    }
+
+    private void cleanUpGame() {
         background.clear();
         enemies.clear();
-        initTileMap("mapLevelTwo.txt", "mapLevelTwo.txt", "mapLevelTwo.txt");
-        initSprites();
-        initBackgroundAnimation("images/background/floor.png","images/background/columns.png","images/background/windows.png","images/background/mountains.png");
+        coinSprite.clear();
+        backgroundMusic.stopSound();
     }
 }
